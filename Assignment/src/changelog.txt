@@ -1,0 +1,20 @@
+Changelog for Assignment by CubieX
+----------------------------------
+
+V. 0.4
+- fixed offline assigner handling
+- added info message if there are completed assignments for the player ready to be picked up
+
+V. 0.3
+- build against CB 1.3.1 R2.0
+- implemented cleanup command to delete invalid assignments from DB (wehere ther is no sign any more)
+- implemented automatic DB cleanup every hour
+
+V. 0.2
+- added handling structure for offline assigner
+
+V. 0.1
+- build against CB 1.2.5 R3.0
+
+V. 0.1a
+- Initial alpha version

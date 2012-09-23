@@ -1,0 +1,25 @@
+name: Assignment
+main: com.github.CubieX.Assignment.Assignment
+depend: [Vault]
+version: 0.4
+description: Give out material procurement assignments for a reward 
+
+commands:
+    ass:
+      description: Using Assignment
+      usage: /ass version | reload | cleanup
+
+permissions:
+
+    assignment.make:
+        description: Allows creation of an assignment.
+        default: op
+    assignment.take:
+        description: Allows fulfilling an open assignment and gaining of the reward.
+        default: op
+    assignment.break:
+        description: Allows breaking registered Assignment signs that are not your own.
+        default: op
+    assignment.*:
+        description: Allows reloading the plugin and all other commands.
+        default: op

@@ -1,0 +1,10 @@
+#do NOT change the config version!
+config_version: '1'
+#set locale for user dialog messages (currently without function!)
+language: de
+#enable debug output
+debug: false
+#Currency symbol
+currency: '$'
+#Tag to be displayed on assignment signs for completed assignments
+CompletedAssignmentTag: 'Erledigt'
