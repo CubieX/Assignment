@@ -64,7 +64,7 @@ public class ASSCommandHandler implements CommandExecutor
             }
             else
             {
-                sender.sendMessage(ChatColor.YELLOW + "Ungueltige Anzahl Argumente.");
+                sender.sendMessage(ChatColor.YELLOW + "Falsche Anzahl an Parametern.");
             }                
 
         }         

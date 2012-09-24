@@ -415,7 +415,7 @@ public class Assignment extends JavaPlugin implements Listener
                                                 sign.setLine(1, stillAvailable);  
                                             }
                                             sign.setLine(0, "<" + completedAssTag + ">");
-                                            sign.setLine(2, "rechtsklicken!"); //max. 15 Zeichen!     
+                                            sign.setLine(2, "rechtsklicken!"); //max. 15 Zeichen!     //TODO aus Lang-file nehmen!!
                                             sign.update();
 
                                             //keep Name of Assigner in Line 4                                           
@@ -443,6 +443,7 @@ public class Assignment extends JavaPlugin implements Listener
                                         {
                                             assigner.sendMessage(ChatColor.GREEN + "Deinem Inventar wurden " + ChatColor.YELLOW + amount + " " + iStack.getType().getMaterial(itemID).toString() + ":" + String.valueOf(subID) + ChatColor.GREEN +" hinzugefuegt.");
                                             event.getClickedBlock().setType(Material.AIR); //remove sign
+                                            //TODO gatheredAllGoods in Lang file. Muss noch angepasst werden wg. Compound...Variablen + chatfarben... Die oberen auch alle!
                                             deleteSignFromDB(event.getClickedBlock().getX(), event.getClickedBlock().getY(), event.getClickedBlock().getZ(), event.getClickedBlock().getWorld().getName()); //remove DB entry of sign
                                             //Assignment is now fulfilled successfully    
                                         }                                    
@@ -773,7 +774,7 @@ public class Assignment extends JavaPlugin implements Listener
                 {
                     public void run()
                     {
-                        pjEvent.getPlayer().sendMessage(ChatColor.GREEN + "Du hast noch einen erfuellten Auftrag. Du kannst dort deine Waren abholen.");
+                        pjEvent.getPlayer().sendMessage(ChatColor.GREEN + "Du hast noch einen erfuellten Auftrag. Du kannst am Schild deine Waren abholen.");
                     }
                  }, 200L); 
                 
