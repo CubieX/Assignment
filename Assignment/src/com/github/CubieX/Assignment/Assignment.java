@@ -806,7 +806,7 @@ public class Assignment extends JavaPlugin implements Listener
             if(queryRes.getRow() == 1) // query has a result, so it's a registeres sign
             { 
                 String assignerName = queryRes.getString("assigner");
-                assigner = Bukkit.getServer().getPlayer(assignerName); //TODO ACHTUNG: DAS GEHT NUR GUT, WENN DER ASSIGNER ONLINE IST!!!
+                assigner = Bukkit.getServer().getPlayer(assignerName); //ACHTUNG: DAS GEHT NUR GUT, WENN DER ASSIGNER ONLINE IST!!!
                 //Wenn er auch nicht online sein kann, dann die Methode "getAssignerNameFromDB" nutzen!
                 if(this.getConfig().getBoolean("debug")){log.info("Schild ist registriertes Assignment Schild");}  
             }

@@ -1,9 +1,10 @@
 Changelog for Assignment by CubieX
 ----------------------------------
 
-V. 0.4
+V. 1.0
+- first release version
 - fixed offline assigner handling
-- added info message if there are completed assignments for the player ready to be picked up
+- added info message on login, if there are completed assignments for the player ready to be picked up
 
 V. 0.3
 - build against CB 1.3.1 R2.0

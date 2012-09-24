@@ -1,3 +1,4 @@
 Known issues:
 -------------
 
+- only german translation until now
