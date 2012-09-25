@@ -2,6 +2,7 @@ package com.github.CubieX.Assignment;
 
 import java.io.File;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
@@ -9,6 +10,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,6 +19,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -46,12 +49,13 @@ public class Assignment extends JavaPlugin implements Listener
     static String assignmentStateActive = "active";
     static String assignmentStateCompleted = "completed";
     static boolean debug = false;
+    public Boolean blockNextBlockPlacing = false;
 
     @Override
     public void onEnable()
     {     
         this.aInst = this;
-        
+
         if (!setupEconomy() ) {
             log.info(String.format("[%s] - Disabled due to no Vault found!", getDescription().getName()));
             getServer().getPluginManager().disablePlugin(this);
@@ -277,9 +281,10 @@ public class Assignment extends JavaPlugin implements Listener
                     //not a number. Abort.                
                     event.getBlock().breakNaturally();
                     assigner.sendMessage(ChatColor.YELLOW + "Hilfe: 1. Zeile: <A> 2. Zeile: ItemID:[SubID:]Anzahl 3. Zeile: Belohnung");
+                    assigner.sendMessage(ChatColor.YELLOW + "Die ItemID kann mit /iteminfo abgerufen werden, wenn du das gewollte Item in der Hand hast.");
                     parsingOK = false;
                     return; //leave method
-                }
+                }//TODO Evt. ItemName auf Schild anstatt der ID ermöglichen (ähnlich ChestShop). Wird aber problematisch wg. Länge...
                 if(parsingOK)
                 {                
                     event.setLine(2,String.valueOf(reward).concat(" " + currency));
@@ -347,7 +352,7 @@ public class Assignment extends JavaPlugin implements Listener
 
         if(this.getConfig().getBoolean("debug")){log.info("Es klickte: " + event.getPlayer().getName());}        
         if(this.getConfig().getBoolean("debug")){log.info("onPlayerInteractEntity");}
-        
+
         if(act == Action.RIGHT_CLICK_BLOCK)
         {
             if(this.getConfig().getBoolean("debug")){log.info("Rechtsklick auf BlockID " + String.valueOf(event.getClickedBlock().getTypeId())  + " erkannt");}
@@ -359,18 +364,24 @@ public class Assignment extends JavaPlugin implements Listener
 
                 if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + completedAssTag + ">")) // is Assignment sign?
                 {
+                    // block next occurring BlockPlace()-action to prevent accidental placing of block in hand                                        
+                    if(event.getPlayer().getItemInHand().getTypeId() < 256) //item in hand is a placable block and not an item
+                    {
+                        blockNextBlockPlacing = true;
+                    }
+
                     String assName = getAssignerNameFromDB((int)sign.getX(), (int)sign.getY(), (int)sign.getZ(), sign.getWorld().getName());
                     if(this.getConfig().getBoolean("debug")){log.info("assignerName: " + assName.toString() + " Spieler der klickte: " + event.getPlayer().getName());}
                     if("" != assName) //sign is registered assignment sign
                     {      
-                        if(this.getConfig().getBoolean("debug")){log.info("Assignment-Sign erkannt");}     
+                        if(this.getConfig().getBoolean("debug")){log.info("Assignment-Sign erkannt");} 
                         try
                         {
                             if(assName.equalsIgnoreCase(event.getPlayer().getName().toString())) //assigner has clicked right on his own sign to pick up its remaining items from a completed assignment
                             {
                                 assigner = getAssignerFromDB((int)sign.getX(), (int)sign.getY(), (int)sign.getZ(), sign.getWorld().getName());
 
-                                if(null != assigner)
+                                if(null != assigner) // clicking player is assigner
                                 {
                                     if(this.getConfig().getBoolean("debug")){log.info("Klickender Spieler ist Assigner (Stringvergleich)");} 
                                     if(sign.getLine(0).contains("<" + completedAssTag + ">"))
@@ -493,13 +504,24 @@ public class Assignment extends JavaPlugin implements Listener
 
                                         if(this.getConfig().getBoolean("debug")){log.info("ItemID: " + String.valueOf(itemID) + " SubID: " + String.valueOf(subID) + ", Anzahl: " + String.valueOf(amount) + " , Belohnung: " + String.valueOf(reward));}
 
+                                        // block next occurring BlockPlace()-action to prevent dupe bug (assignee will otherwise place the block in hand in front of the sign, causing a dupe exploit,
+                                        // if it is the same block which is requested by the assignment)
+                                        if(event.getPlayer().getItemInHand().getTypeId() == iStack.getTypeId())
+                                        {
+                                            blockNextBlockPlacing = true;
+                                        }
+
                                         // look if assignee has needed amount of items in his inventory. If not: abort
                                         int missingAmount = 0;
-                                        HashMap<Integer, ItemStack> couldnotRemove = assignee.getInventory().removeItem(iStack); //try to remove needed items
-                                        if(false == couldnotRemove.isEmpty()) //there were some items missing to complete the assignment
+                                        assignee.updateInventory(); //deprecated
+                                        HashMap<Integer, ItemStack> couldNotRemove = assignee.getInventory().removeItem(iStack); //try to remove needed items
+                                        assignee.updateInventory(); //deprecated
+
+                                        if(false == couldNotRemove.isEmpty()) //there were some items missing to complete the assignment
                                         {
-                                            missingAmount = couldnotRemove.get(0).getAmount(); //how much items were missing?
-                                            assignee.getInventory().addItem(new ItemStack(itemID, amount-missingAmount, subID)); //give all allready removed items back, because he does not have the required amount
+                                            missingAmount = couldNotRemove.get(0).getAmount(); //how much items were missing?
+                                            assignee.getInventory().addItem(new ItemStack(itemID, amount-missingAmount, subID)); //give all already removed items back, because he does not have the required amount
+                                            assignee.updateInventory(); //deprecated
                                             assignee.sendMessage(ChatColor.YELLOW + "Du hast nicht die benoetigten " + amount + " " + iStack.getType().getMaterial(itemID).toString() + ":" + String.valueOf(subID) + " um diesen Auftrag zu erfuellen.");
                                         }
                                         else //assignee has enough of the item to complete the assignment
@@ -510,8 +532,7 @@ public class Assignment extends JavaPlugin implements Listener
                                             {
                                                 String stillAvailable = "";
                                                 int notFittingAmount = 0; //amount of Items that do not fit into the assigners inventory
-                                                assignee.getInventory().remove(iStack);
-                                                assignee.updateInventory(); //deprecated
+                                                //assignee.getInventory().remove(iStack);                                                
                                                 updateSignInDB(sign.getX(), sign.getY(), sign.getZ(), sign.getWorld().getName(), assignmentStateCompleted); // change state so "completed"
                                                 assignee.sendMessage(ChatColor.GREEN + "Danke! Dir wurden " + ChatColor.YELLOW + reward + " " + currency + ChatColor.GREEN + " ausgezahlt fuer deinen erledigten Job.");                                            
                                                 //Assignee has got his reward and does no longer matter!
@@ -524,6 +545,7 @@ public class Assignment extends JavaPlugin implements Listener
                                                     assigner.sendMessage(ChatColor.GREEN + assignee.getName() + " hat einen deiner Auftraege erledigt und dafuer ");
                                                     assigner.sendMessage(ChatColor.YELLOW + String.valueOf(reward) + " " + currency + ChatColor.GREEN +" von dir erhalten.");    
                                                     //try to add the items from the assignment to the assigners inventory                                                        
+                                                    assignee.updateInventory(); //deprecated
                                                     HashMap<Integer, ItemStack> couldnotAdd = assigner.getInventory().addItem(iStack);
                                                     assigner.updateInventory(); //deprecated
                                                     if(false == couldnotAdd.isEmpty()) //not all items fitted in the assigners inventory
@@ -545,24 +567,27 @@ public class Assignment extends JavaPlugin implements Listener
                                                         sign.update();                                                        
                                                         // keep Name of Assigner in Line 4                                           
 
-                                                        if(amount == notFittingAmount) //Players Inventory is full
+                                                        if(assigner.isOnline())
                                                         {
-                                                            assigner.sendMessage(ChatColor.YELLOW + "Dein Inventar ist voll! Lege etwas ab, um weitere Waren deines Auftrags einzusammeln.");
-                                                        }
-                                                        else if(subID > 0) //subID given
-                                                        {                                  
-                                                            assigner.sendMessage(ChatColor.GREEN + "Deinem Inventar wurden " + ChatColor.YELLOW + (amount-notFittingAmount) + " " + iStack.getType().getMaterial(itemID).toString() + ":" + String.valueOf(subID) + ChatColor.YELLOW + " hinzugefuegt.");
-                                                            assigner.sendMessage(ChatColor.GREEN + "Du kannst weitere " + notFittingAmount + " " + iStack.getType().getMaterial(itemID).toString() + ":" + String.valueOf(subID) + " bei deinem Schild abholen.");
-                                                            assigner.sendMessage(ChatColor.GREEN + " (Rechtsklick)");
-                                                            assigner.sendMessage(ChatColor.GREEN + "Position des Schilds: X: " + String.valueOf((int)event.getClickedBlock().getX()) + "  Z: " + String.valueOf((int)event.getClickedBlock().getZ()) + " in " + event.getClickedBlock().getWorld().getName());
-                                                        }
-                                                        else
-                                                        {                                  
-                                                            assigner.sendMessage(ChatColor.GREEN + "Deinem Inventar wurden " + ChatColor.YELLOW + (amount-notFittingAmount) + " " + iStack.getType().getMaterial(itemID).toString() + ChatColor.GREEN + " hinzugefuegt.");
-                                                            assigner.sendMessage(ChatColor.GREEN + "Du kannst weitere " + notFittingAmount + " " + iStack.getType().getMaterial(itemID).toString() + " bei deinem Schild abholen.");
-                                                            assigner.sendMessage(ChatColor.GREEN + " (Rechtsklick)");
-                                                            assigner.sendMessage(ChatColor.GREEN + "Position des Schilds: X: " + String.valueOf((int)event.getClickedBlock().getX()) + "  Z: " + String.valueOf((int)event.getClickedBlock().getZ()) + " in " + event.getClickedBlock().getWorld().getName());
-                                                        }
+                                                            if(amount == notFittingAmount) //Players Inventory is full
+                                                            {
+                                                                assigner.sendMessage(ChatColor.YELLOW + "Dein Inventar ist voll! Lege etwas ab, um weitere Waren deines Auftrags einzusammeln.");
+                                                            }
+                                                            else if(subID > 0) //subID given
+                                                            {                                  
+                                                                assigner.sendMessage(ChatColor.GREEN + "Deinem Inventar wurden " + ChatColor.YELLOW + (amount-notFittingAmount) + " " + iStack.getType().getMaterial(itemID).toString() + ":" + String.valueOf(subID) + ChatColor.YELLOW + " hinzugefuegt.");
+                                                                assigner.sendMessage(ChatColor.GREEN + "Du kannst weitere " + notFittingAmount + " " + iStack.getType().getMaterial(itemID).toString() + ":" + String.valueOf(subID) + " bei deinem Schild abholen.");
+                                                                assigner.sendMessage(ChatColor.GREEN + " (Rechtsklick)");
+                                                                assigner.sendMessage(ChatColor.GREEN + "Position des Schilds: X: " + String.valueOf((int)event.getClickedBlock().getX()) + "  Z: " + String.valueOf((int)event.getClickedBlock().getZ()) + " in " + event.getClickedBlock().getWorld().getName());
+                                                            }
+                                                            else
+                                                            {                                  
+                                                                assigner.sendMessage(ChatColor.GREEN + "Deinem Inventar wurden " + ChatColor.YELLOW + (amount-notFittingAmount) + " " + iStack.getType().getMaterial(itemID).toString() + ChatColor.GREEN + " hinzugefuegt.");
+                                                                assigner.sendMessage(ChatColor.GREEN + "Du kannst weitere " + notFittingAmount + " " + iStack.getType().getMaterial(itemID).toString() + " bei deinem Schild abholen.");
+                                                                assigner.sendMessage(ChatColor.GREEN + " (Rechtsklick)");
+                                                                assigner.sendMessage(ChatColor.GREEN + "Position des Schilds: X: " + String.valueOf((int)event.getClickedBlock().getX()) + "  Z: " + String.valueOf((int)event.getClickedBlock().getZ()) + " in " + event.getClickedBlock().getWorld().getName());
+                                                            }
+                                                        }                                                       
                                                     }
                                                     else
                                                     {
@@ -603,8 +628,7 @@ public class Assignment extends JavaPlugin implements Listener
                                     }
                                     else // player who clicked is an assignee, but assignment is already completed
                                     {
-                                        assignee = event.getPlayer();
-                                        assignee.sendMessage(ChatColor.YELLOW + "Dieser Auftrag wurde schon erfuellt.");
+                                        event.getPlayer().sendMessage(ChatColor.YELLOW + "Dieser Auftrag wurde schon erfuellt.");
                                     }
                                 }
                                 else
@@ -622,11 +646,8 @@ public class Assignment extends JavaPlugin implements Listener
                     {
                         event.getPlayer().sendMessage(ChatColor.YELLOW + "Dieses Schild ist ein Fake und gehoert nicht zu einem registrierten Auftrag!");
                     }
-
-
                 }
-
-            }
+            }            
         }
         else if(act == Action.LEFT_CLICK_BLOCK)
         {
@@ -693,15 +714,16 @@ public class Assignment extends JavaPlugin implements Listener
 
             if(bSign.getLine(0).contains("<A>") || bSign.getLine(0).contains("<a>") || bSign.getLine(0).contains("<" + completedAssTag + ">")) // is Assignment sign?
             {
+                String assignerName = getAssignerNameFromDB((int)event.getBlock().getX(), (int)event.getBlock().getY(), (int)event.getBlock().getZ(), event.getBlock().getWorld().getName());
                 assigner = getAssignerFromDB((int)event.getBlock().getX(), (int)event.getBlock().getY(), (int)event.getBlock().getZ(), event.getBlock().getWorld().getName());
 
-                if(null != assigner) // sign is registered assignment sign
+                if("" != assignerName) // sign is registered assignment sign
                 {            
                     if(this.getConfig().getBoolean("debug")){log.info("Assignment Sign erkannt");}
 
                     try
                     {   
-                        if(event.getPlayer() == assigner ||
+                        if(event.getPlayer().getName().equalsIgnoreCase(assignerName) ||
                                 event.getPlayer().hasPermission("assignment.break") ||
                                 event.getPlayer().hasPermission("assignment.*")) //player is the assigner or a player with permission to break the sign
                         {     
@@ -725,7 +747,10 @@ public class Assignment extends JavaPlugin implements Listener
                                     EconomyResponse ecoRes = econ.depositPlayer(assigner.getName(), payback); //payback reward
                                     if(ecoRes.transactionSuccess()) 
                                     {
-                                        assigner.sendMessage(ChatColor.YELLOW + "Auftrag wurde geloescht. Du hast " + String.valueOf(payback) + " " + currency + " zurueckerstattet bekommen.");
+                                        if((null != assigner) && (assigner.isOnline()))
+                                        {
+                                            assigner.sendMessage(ChatColor.YELLOW + "Du hast " + String.valueOf(payback) + " " + currency + " zurueckerstattet bekommen.");    
+                                        }                                        
                                         //delete sign from DB                                        
                                         deleteSignFromDB((int)bSign.getX(), (int)bSign.getY(), (int)bSign.getZ(), bSign.getWorld().getName());
                                         event.getPlayer().sendMessage(ChatColor.YELLOW + "Dieser Auftrag wurde hiermit geloescht.");
@@ -756,15 +781,27 @@ public class Assignment extends JavaPlugin implements Listener
             }
         }
     }
-    
+
+    // Needed to prevent dupe bug when assignee clicks Assignment sign with the Block that is requested by the assignment in hand.
+    // The block would be placed without beeing removed from his inventory properly, causing a dupe. So placing must be blocked in this case!
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false) // -> priority MUST BE HIGHER to protect the sign
+    public void onBlockPlace(BlockPlaceEvent event) //For the Assignee
+    {
+        if(blockNextBlockPlacing)
+        {
+            event.setCancelled(true); //prevent placing as long as Assignee-Handling is running to prevent duping blocks.
+            blockNextBlockPlacing = false; //release blockPlacing lock
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true) // event has MONITOR priority and will be skipped if it has been cancelled before
     public void onPlayerJoin(PlayerJoinEvent event)
     {      
         final PlayerJoinEvent pjEvent = event;        
-        
+
         // Check if player has unfulfilled assignments to pick up
         final int assRdyForPickup = getCompletedAssignmentsFromDB(event.getPlayer().getName());
-        
+
         if(assRdyForPickup > 0)
         {
             if(assRdyForPickup == 1) // there are completed assignments for this player to pick up
@@ -775,20 +812,22 @@ public class Assignment extends JavaPlugin implements Listener
                     public void run()
                     {
                         pjEvent.getPlayer().sendMessage(ChatColor.GREEN + "Du hast noch einen erfuellten Auftrag. Du kannst am Schild deine Waren abholen.");
+                        pjEvent.getPlayer().sendMessage(ChatColor.GREEN + "Mit " + ChatColor.WHITE + "/ass list" + ChatColor.GREEN + " kannst du deine Auftraege ansehen.");
                     }
-                 }, 200L); 
-                
+                }, 200L); 
+
             }
             else
             {
-             // DELAYED TASK (only called once)
+                // DELAYED TASK (only called once)
                 getServer().getScheduler().scheduleSyncDelayedTask(aInst, new Runnable()
                 {
                     public void run()
                     {
                         pjEvent.getPlayer().sendMessage(ChatColor.GREEN + "Du hast noch " + Integer.toString(assRdyForPickup) + " erfuellte Auftraege. Bitte hole deine Waren ab.");
+                        pjEvent.getPlayer().sendMessage(ChatColor.GREEN + "Mit " + ChatColor.WHITE + "/ass list" + ChatColor.GREEN + " kannst du deine Auftraege ansehen.");
                     }
-                 }, 200L);                
+                }, 200L);                
             } 
         }
         // --------------------------------------------             
@@ -796,7 +835,7 @@ public class Assignment extends JavaPlugin implements Listener
 
     //==============================================================================
     // database queries
-    public Player getAssignerFromDB(int x, int y, int z, String world) //make multiworld compatible!
+    public Player getAssignerFromDB(int x, int y, int z, String world)
     {
         String query = "SELECT assigner FROM signs WHERE x='" + x + "' AND y='" + y + "' AND z='" + z+ "' AND world='" + world + "'";        
 
@@ -855,7 +894,7 @@ public class Assignment extends JavaPlugin implements Listener
             log.severe(logPrefix + "Error on deleting sign from DB. No sign found here.");
         }   
     }
-    
+
     public void updateSignInDB(int x, int y, int z, String world, String state)
     {
         String query = "UPDATE signs SET state='" + state + "' WHERE x=" + x + " AND y=" + y + " AND z=" + z + " AND world='" + world + "'";       
@@ -870,7 +909,7 @@ public class Assignment extends JavaPlugin implements Listener
             log.severe(logPrefix + "Error on updating sign in DB. No sign found here.");
         }   
     }
-    
+
     public int getCompletedAssignmentsFromDB(String loggedInPlayerName)
     {
         int assignmentsReadyForPickup = 0;
@@ -888,9 +927,24 @@ public class Assignment extends JavaPlugin implements Listener
         }
         catch (Exception e)
         {
-          log.severe(e.getMessage());
+            log.severe(e.getMessage());
         }       
         return assignmentsReadyForPickup;
+    }
+
+    public ResultSet getAssignmentList(String queriedPlayerName)
+    {        
+        String query = "SELECT x, y, z, world, state FROM signs WHERE assigner='" + queriedPlayerName + "'";
+
+        try
+        {            
+            ResultSet queryRes = this.manageSQLite.sqlQuery(query);            
+            return (queryRes);
+        }
+        catch (Exception e)
+        {           
+            return null;
+        }
     }
 }
 

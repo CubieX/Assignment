@@ -1,13 +1,13 @@
 name: Assignment
 main: com.github.CubieX.Assignment.Assignment
 depend: [Vault]
-version: 1.0
+version: 1.0.1
 description: Give out material procurement assignments for a reward 
 
 commands:
     ass:
       description: Using Assignment
-      usage: /ass version | reload | cleanup
+      usage: /ass list <PLAYER> | version | reload | cleanup
 
 permissions:
 
@@ -19,6 +19,9 @@ permissions:
         default: op
     assignment.break:
         description: Allows breaking registered Assignment signs that are not your own.
+        default: op
+    assignment.listother
+        description: Allows listing of other players assignments.
         default: op
     assignment.*:
         description: Allows reloading the plugin and all other commands.

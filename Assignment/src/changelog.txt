@@ -1,6 +1,11 @@
 Changelog for Assignment by CubieX
 ----------------------------------
 
+V. 1.0.1
+- fixed a dupe glitch
+- added command for showing a list of own assignments or those of other players
+- added new permission node "assignment.listother" for allowing listing other players assignments
+
 V. 1.0
 - first release version
 - fixed offline assigner handling
