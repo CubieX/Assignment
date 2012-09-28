@@ -783,8 +783,9 @@ public class Assignment extends JavaPlugin implements Listener
     }
 
     // Needed to prevent dupe bug when assignee clicks Assignment sign with the Block that is requested by the assignment in hand.
-    // The block would be placed without beeing removed from his inventory properly, causing a dupe. So placing must be blocked in this case!
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false) // -> priority MUST BE HIGHER to protect the sign
+    // The block would be placed without beeing removed from his inventory properly, causing a dupe. So placing must be blocked in this case.
+    // also blocks accidnental placing of blocks when using right click with block in hand
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = false) 
     public void onBlockPlace(BlockPlaceEvent event) //For the Assignee
     {
         if(blockNextBlockPlacing)

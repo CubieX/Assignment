@@ -20,7 +20,7 @@ permissions:
     assignment.break:
         description: Allows breaking registered Assignment signs that are not your own.
         default: op
-    assignment.listother
+    assignment.listother:
         description: Allows listing of other players assignments.
         default: op
     assignment.*:

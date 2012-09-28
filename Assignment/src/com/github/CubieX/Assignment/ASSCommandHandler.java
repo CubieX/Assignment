@@ -67,7 +67,8 @@ public class ASSCommandHandler implements CommandExecutor
                     return true;
                 }
 
-                if (args[0].equalsIgnoreCase("list")) // argument 0 is given and correct
+                if ((args[0].equalsIgnoreCase("list")) ||
+                        (args[0].equalsIgnoreCase("liste")))
                 { // lists all assignments of the player
                     ResultSet resSet = plugin.getAssignmentList(sender.getName());
 
@@ -77,14 +78,15 @@ public class ASSCommandHandler implements CommandExecutor
                     }
                     else
                     {
-                        sender.sendMessage(ChatColor.GREEN + "Es wurden keine Assignments gefunden.");
+                        sender.sendMessage(ChatColor.GREEN + "Es wurden keine Auftraege gefunden.");
                     }
                     return true;
                 }
             }
             if (args.length==2)
             {
-                if ((args[0].equalsIgnoreCase("list")) && (args[1].trim() != ""))
+                if ((args[0].equalsIgnoreCase("list")) ||
+                        (args[0].equalsIgnoreCase("liste")))                        
                 {// lists assignments of given player
                     if(sender.hasPermission("assignment.*") || (sender.hasPermission("assignment.listother")))
                     {
@@ -97,7 +99,7 @@ public class ASSCommandHandler implements CommandExecutor
                         }
                         else
                         {
-                            sender.sendMessage(ChatColor.GREEN + "Es wurden keine Assignments gefunden.");
+                            sender.sendMessage(ChatColor.GREEN + "Es wurden keine Auftraege gefunden.");
                         }
                     }
                     else
@@ -128,7 +130,7 @@ public class ASSCommandHandler implements CommandExecutor
             while(resSet.next())
             {
                 assignmentFound = true;
-                
+
                 if(resSet.getString("state").equalsIgnoreCase("active"))
                 {
                     aState = ChatColor.GREEN + "offen";
@@ -138,7 +140,7 @@ public class ASSCommandHandler implements CommandExecutor
                     aState = ChatColor.YELLOW + "abholbar";
                 }
 
-                sender.sendMessage(resSet.getRow() + ": x= " + resSet.getString("x") + " | y= " + resSet.getString("y") + " | z= " + resSet.getString("z") + " in " + resSet.getString("world") + " ist: " + aState);
+                sender.sendMessage("Nr " + ChatColor.GREEN + resSet.getRow() + ChatColor.WHITE + " am Standort: " + resSet.getString("x") + ", " + resSet.getString("y") + ", " + resSet.getString("z") + " in " + resSet.getString("world") + " ist " + aState);
             }
             if(!assignmentFound)
             {
