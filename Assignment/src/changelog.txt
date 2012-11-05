@@ -1,6 +1,10 @@
 Changelog for Assignment by CubieX
 ----------------------------------
 
+V. 1.0.3
+- seperated EntityListener to its own class
+- build against CB 1.4.2-R0.2 Beta
+
 V. 1.0.2
 - minor output strings fixing
 - added german "liste" command argument
