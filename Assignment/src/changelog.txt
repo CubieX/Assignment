@@ -1,6 +1,12 @@
 Changelog for Assignment by CubieX
 ----------------------------------
 
+V. 1.0.4
+- minor message fixes
+- made sign tags configurable
+- signs now show the configured title when created instead of just <a> or <A>
+- increased config version to "2"
+
 V. 1.0.3
 - seperated EntityListener to its own class
 - build against CB 1.4.2-R0.2 Beta

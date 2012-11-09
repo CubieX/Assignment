@@ -1,4 +1,8 @@
 Known issues:
 -------------
 
+- if assignee has none of the needed items and right clicks a sign, one of the needed items will appear in one
+  of the inventory quick-slots, but will not be placable. It will disappear when the player tries to place it, or when he disconnects.
+  Currently I have no workaround for it.
+  
 - only german translation until now

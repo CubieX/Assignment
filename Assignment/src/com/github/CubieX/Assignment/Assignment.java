@@ -30,6 +30,8 @@ public class Assignment extends JavaPlugin implements Listener
 
     private Player assigner = null;
     static String completedAssTag = "<E>";
+    static String openAssignmentTitle = "<A>";
+    static String rightClickText = "rechtsklicken!";
     static String assignmentStateCompleted = "completed";
     private boolean debug = false;
     public Boolean blockNextBlockPlacing = false;
@@ -75,6 +77,8 @@ public class Assignment extends JavaPlugin implements Listener
     public void setStaticValues()
     {
         completedAssTag = this.getConfig().getString("CompletedAssignmentTag");
+        openAssignmentTitle = this.getConfig().getString("OpenAssignmentTitle");
+        rightClickText = this.getConfig().getString("RightClickText");
     }
 
     private boolean setupEconomy() 
@@ -155,7 +159,7 @@ public class Assignment extends JavaPlugin implements Listener
                         {              
                             Sign sign = (Sign) blToDel.getState();
 
-                            if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + completedAssTag + ">")) // is Assignment sign?
+                            if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + completedAssTag + ">") || sign.getLine(0).contains("<" + openAssignmentTitle + ">")) // is Assignment sign?
                             {
                                 isAssSign = true;
                             }                                                                            
@@ -304,7 +308,7 @@ public class Assignment extends JavaPlugin implements Listener
 
     public ResultSet getAssignmentList(String queriedPlayerName)
     {        
-        String query = "SELECT x, y, z, world, state FROM signs WHERE assigner='" + queriedPlayerName + "'";
+        String query = "SELECT x, y, z, world, state FROM signs WHERE assigner LIKE '" + queriedPlayerName + "'";
 
         try
         {            

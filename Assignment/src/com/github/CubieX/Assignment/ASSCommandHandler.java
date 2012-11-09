@@ -3,7 +3,6 @@ package com.github.CubieX.Assignment;
 import java.sql.ResultSet;
 import java.util.logging.Logger;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -66,19 +65,17 @@ public class ASSCommandHandler implements CommandExecutor
                     plugin.cleanupAssignmentsInDB(sender);
                     return true;
                 }
-
+                // TODO Liste im Chat auf Seiten aufteilen wenn lang! Es gibt da ne Bukkit-Methode für... 
                 if ((args[0].equalsIgnoreCase("list")) ||
                         (args[0].equalsIgnoreCase("liste")))
                 { // lists all assignments of the player
-                    ResultSet resSet = plugin.getAssignmentList(sender.getName());
-
-                    if(null != resSet)
+                    if(sender instanceof Player)
                     {
-                        readAssignmentList(sender, resSet);                       
+                        queryForAssignmentList(sender, sender.getName());
                     }
                     else
                     {
-                        sender.sendMessage(ChatColor.GREEN + "Es wurden keine Auftraege gefunden.");
+                        sender.sendMessage(Assignment.logPrefix + "Es wird ein Spieler erwartet!");
                     }
                     return true;
                 }
@@ -88,24 +85,21 @@ public class ASSCommandHandler implements CommandExecutor
                 if ((args[0].equalsIgnoreCase("list")) ||
                         (args[0].equalsIgnoreCase("liste")))                        
                 {// lists assignments of given player
-                    if(sender.hasPermission("assignment.*") || (sender.hasPermission("assignment.listother")))
+                    if(sender instanceof Player)
                     {
-                        ResultSet resSet = plugin.getAssignmentList(args[1].trim());
-
-                        if(null != resSet)
+                        if(sender.hasPermission("assignment.*") || (sender.hasPermission("assignment.listother")))
                         {
-                            readAssignmentList(sender, resSet);
-
+                            queryForAssignmentList(sender, args[1]);
                         }
                         else
                         {
-                            sender.sendMessage(ChatColor.GREEN + "Es wurden keine Auftraege gefunden.");
+                            sender.sendMessage(ChatColor.RED + "You do not have sufficient permission to list other players assignments!");
                         }
                     }
                     else
                     {
-                        sender.sendMessage(ChatColor.RED + "You do not have sufficient permission to list other players assignments!");
-                    }
+                        queryForAssignmentList(sender, args[1]);
+                    }                    
                     return true;
                 }
             }
@@ -116,16 +110,31 @@ public class ASSCommandHandler implements CommandExecutor
         }         
         return false; // if false is returned, the help for the command stated in the plugin.yml will be displayed to the player
     }
+    
+    void queryForAssignmentList(CommandSender sender, String queriedPlayer)
+    {
+        ResultSet resSet = plugin.getAssignmentList(queriedPlayer.trim());
 
-    void readAssignmentList(CommandSender sender, ResultSet resSet)
+        if(null != resSet)
+        {
+            readAssignmentList(sender, resSet, queriedPlayer.trim());
+
+        }
+        else
+        {
+            sender.sendMessage(ChatColor.GREEN + "Es wurden keine Auftraege gefunden.");
+        }
+    }
+
+    void readAssignmentList(CommandSender sender, ResultSet resSet, String queriedPlayer)
     {
         String aState = "";
         boolean assignmentFound = false;
 
         try
         {            
-            sender.sendMessage("Auftragsliste:");
-            sender.sendMessage("-----------------------------------");
+            sender.sendMessage("Auftragsliste von: " + ChatColor.GREEN + queriedPlayer);
+            sender.sendMessage("---------------------------------------------------");
 
             while(resSet.next())
             {
@@ -146,7 +155,7 @@ public class ASSCommandHandler implements CommandExecutor
             {
                 sender.sendMessage(ChatColor.YELLOW + "Keine Auftraege gefunden.");
             }
-            sender.sendMessage("-----------------------------------");
+            sender.sendMessage("---------------------------------------------------");
         }
         catch (Exception ex)
         {

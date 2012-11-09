@@ -35,6 +35,7 @@ public final class ASSEntityListener implements Listener
         this.log = log; 
         
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        this.currency = plugin.getConfig().getString("currency");
     }
     
     //================================================================================================
@@ -47,8 +48,8 @@ public final class ASSEntityListener implements Listener
             event.getPlayer().sendMessage("Linie 0:" + event.getLine(0)); //debug
         }   
 
-        if(event.getLine(0).contains("<A>") || event.getLine(0).contains("<a>")) //Assignment sign?
-        {
+        if(event.getLine(0).contains("<A>") || event.getLine(0).contains("<a>") || event.getLine(0).contains("<" + Assignment.openAssignmentTitle + ">")) //Assignment sign?
+        {   
             if(plugin.getConfig().getBoolean("debug")){log.info("Assignment-Sign erkannt");}
 
             if(event.getPlayer().hasPermission("assignment.make") || event.getPlayer().hasPermission("assignment.*"))
@@ -95,13 +96,14 @@ public final class ASSEntityListener implements Listener
                 {                   
                     //not a number. Abort.                
                     event.getBlock().breakNaturally();
-                    assigner.sendMessage(ChatColor.YELLOW + "Hilfe: 1. Zeile: <A> 2. Zeile: ItemID:[SubID:]Anzahl 3. Zeile: Belohnung");
+                    assigner.sendMessage(ChatColor.YELLOW + "Hilfe: 1. Zeile: <A> 2. Zeile: ItemID:[SubID:]Anzahl 3. Zeile: Geld-Belohnung");
                     assigner.sendMessage(ChatColor.YELLOW + "Die ItemID kann mit /iteminfo abgerufen werden, wenn du das gewollte Item in der Hand hast.");
                     parsingOK = false;
                     return; //leave method
                 }//TODO Evt. ItemName auf Schild anstatt der ID ermöglichen (ähnlich ChestShop). Wird aber problematisch wg. Länge...
                 if(parsingOK)
-                {                
+                {           
+                    event.setLine(0, "<" + Assignment.openAssignmentTitle + ">");
                     event.setLine(2,String.valueOf(reward).concat(" " + currency));
 
                     if(Assignment.econ.has(assigner.getName(), reward))  //assigner has sufficient money to set up this assignment
@@ -141,7 +143,7 @@ public final class ASSEntityListener implements Listener
                 {
                     //not a number. Abort.                
                     event.getBlock().breakNaturally();
-                    assigner.sendMessage(ChatColor.YELLOW + "Hilfe: 1. Zeile: <A> 2. Zeile: ItemID:[SubID:]Anzahl 3. Zeile: Belohnung");              
+                    assigner.sendMessage(ChatColor.YELLOW + "Hilfe: 1. Zeile: <A> 2. Zeile: ItemID:[SubID:]Anzahl 3. Zeile: Geld-Belohnung");              
                 }
             }
             else
@@ -177,7 +179,7 @@ public final class ASSEntityListener implements Listener
                 if(plugin.getConfig().getBoolean("debug")){log.info("Sign erkannt");}
                 sign = (Sign) event.getClickedBlock().getState();
 
-                if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + Assignment.completedAssTag + ">")) // is Assignment sign?
+                if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + Assignment.completedAssTag + ">") || sign.getLine(0).contains("<" + Assignment.openAssignmentTitle + ">")) // is Assignment sign?
                 {
                     // block next occurring BlockPlace()-action to prevent accidental placing of block in hand                                        
                     if(event.getPlayer().getItemInHand().getTypeId() < 256) //item in hand is a placable block and not an item
@@ -241,7 +243,7 @@ public final class ASSEntityListener implements Listener
                                                 sign.setLine(1, stillAvailable);  
                                             }
                                             sign.setLine(0, "<" + Assignment.completedAssTag + ">");
-                                            sign.setLine(2, "rechtsklicken!"); //max. 15 Zeichen!     //TODO aus Lang-file nehmen!!
+                                            sign.setLine(2, Assignment.rightClickText); //max. 15 Zeichen!
                                             sign.update();
 
                                             //keep Name of Assigner in Line 4                                           
@@ -378,7 +380,7 @@ public final class ASSEntityListener implements Listener
                                                             sign.setLine(1, stillAvailable);
                                                         }    
                                                         sign.setLine(0, "<" + Assignment.completedAssTag + ">");
-                                                        sign.setLine(2, "rechtsklicken!"); //max. 15 Zeichen!     
+                                                        sign.setLine(2, Assignment.rightClickText); //max. 15 Zeichen!     
                                                         sign.update();                                                        
                                                         // keep Name of Assigner in Line 4                                           
 
@@ -430,7 +432,7 @@ public final class ASSEntityListener implements Listener
                                                 }                                                 
                                                 sign.setLine(0, "<" + Assignment.completedAssTag + ">");
                                                 sign.setLine(1, stillAvailable);
-                                                sign.setLine(2, "rechtsklicken!"); //max. 15 Zeichen!     
+                                                sign.setLine(2, Assignment.rightClickText); //max. 15 Zeichen!     
                                                 sign.update();
                                                 //keep Name of Assigner in Line 4 
                                             }
@@ -471,7 +473,7 @@ public final class ASSEntityListener implements Listener
             {
                 sign = (Sign) event.getClickedBlock().getState();                
 
-                if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>")) // is Assignment sign?
+                if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>")  || sign.getLine(0).contains("<" + Assignment.openAssignmentTitle + ">")) // is Assignment sign?
                 {
                     String assignerName = "";
                     assignerName = plugin.getAssignerNameFromDB((int)sign.getX(), (int)sign.getY(), (int)sign.getZ(), sign.getWorld().getName());
@@ -527,7 +529,7 @@ public final class ASSEntityListener implements Listener
             Sign bSign = (Sign)event.getBlock().getState();
             if(plugin.getConfig().getBoolean("debug")){log.info("Sign Line 0: " + bSign.getLine(0));}
 
-            if(bSign.getLine(0).contains("<A>") || bSign.getLine(0).contains("<a>") || bSign.getLine(0).contains("<" + Assignment.completedAssTag + ">")) // is Assignment sign?
+            if(bSign.getLine(0).contains("<A>") || bSign.getLine(0).contains("<a>") || bSign.getLine(0).contains("<" + Assignment.completedAssTag + ">") || bSign.getLine(0).contains("<" + Assignment.openAssignmentTitle + ">")) // is Assignment sign?
             {
                 String assignerName = plugin.getAssignerNameFromDB((int)event.getBlock().getX(), (int)event.getBlock().getY(), (int)event.getBlock().getZ(), event.getBlock().getWorld().getName());
                 assigner = plugin.getAssignerFromDB((int)event.getBlock().getX(), (int)event.getBlock().getY(), (int)event.getBlock().getZ(), event.getBlock().getWorld().getName());

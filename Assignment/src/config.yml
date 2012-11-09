@@ -1,10 +1,15 @@
-#do NOT change the config version!
-config_version: '1'
-#set locale for user dialog messages (currently without function!)
+# do NOT change the config version!
+config_version: '2'
+# set locale for user dialog messages (currently without function!)
 language: de
-#enable debug output
+# enable debug output
 debug: false
-#Currency symbol
+# Currency symbol
 currency: '$'
-#Tag to be displayed on assignment signs for completed assignments
+# Tag to be displayed on assignment signs for unfullfilled assignments
+OpenAssignmentTitle: 'Auftrag'
+# Tag to be displayed on assignment signs for completed assignments
 CompletedAssignmentTag: 'Erledigt'
+# Text to be displayed on assignment signs for completed assignments
+# to tell the user he should "right klick" on the sign. (max. 15 caracters)
+RightClickText: 'rechtsklicken!'
