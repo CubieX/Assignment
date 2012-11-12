@@ -18,6 +18,6 @@ public class ASSSchedulerHandler
             {
                 aInst.cleanupAssignmentsInDB(null);
             }
-        }, (20*3600L), 20*3600L); // 1 hour delay, 1 hour period        
+        }, (20*10800L), 20*10800L); // 3 hour delay, 3 hour period        
     }
 }

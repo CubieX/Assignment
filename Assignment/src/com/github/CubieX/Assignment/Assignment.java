@@ -36,18 +36,32 @@ public class Assignment extends JavaPlugin implements Listener
     private boolean debug = false;
     public Boolean blockNextBlockPlacing = false;
 
+    //************************************************
+    static String usedConfigVersion = "2"; // Update this every time the config file version changes, so the plugin knows, if there is a suiting config present
+    //************************************************
+
     @Override
     public void onEnable()
     {  
-        if (!setupEconomy() ) {
-            log.info(String.format("[%s] - Disabled due to no Vault found!", getDescription().getName()));
-            getServer().getPluginManager().disablePlugin(this);
+        cHandler = new ASSConfigHandler(this);
+
+        if (!setupEconomy())               
+        {
+            log.severe(logPrefix + "will be disabled now. Vault was not found!");
+            disablePlugin();
             return;
         }
-        
+
+        if(!checkConfigFileVersion())
+        {
+            log.severe(logPrefix + "Outdated or corrupted config file. Please delete your current config file, so Assignment can create a new one!");
+            log.severe(logPrefix + "will be disabled now. Config file is outdated or corrupted.");
+            disablePlugin();
+            return;
+        }
+
         log.info(getDescription().getName() + " version " + getDescription().getVersion() + " is enabled!");
 
-        cHandler = new ASSConfigHandler(this);
         eListener = new ASSEntityListener(this, log);
         schedHandler = new ASSSchedulerHandler(this);
         comHandler = new ASSCommandHandler(this, log, cHandler);
@@ -92,6 +106,24 @@ public class Assignment extends JavaPlugin implements Listener
         }
         econ = rsp.getProvider();
         return econ != null;
+    }
+
+    private boolean checkConfigFileVersion()
+    {
+        boolean res = false;
+        String configVersion = this.getConfig().getString("config_version");
+
+        if(configVersion.equals(usedConfigVersion))
+        {
+            res = true;
+        }        
+
+        return (res);
+    }
+
+    void disablePlugin()
+    {
+        getServer().getPluginManager().disablePlugin(this);        
     }
 
     @Override
@@ -148,11 +180,14 @@ public class Assignment extends JavaPlugin implements Listener
                     Location loc;
                     boolean isAssSign = false;                                
 
-                    loc = new Location(getServer().getWorld(resSet.getString("world")),resSet.getDouble("x"),resSet.getDouble("y"),resSet.getDouble("z"));
-                    Block blToDel = loc.getBlock();
+                    Block blToDel;
 
                     for(int i = 0; i < signCount; i++)
                     {
+                        isAssSign = false;
+                        loc = new Location(getServer().getWorld(resSet.getString("world")),resSet.getDouble("x"),resSet.getDouble("y"),resSet.getDouble("z"));
+                        blToDel = loc.getBlock();
+
                         //check if block is a sign, and if not, delete it from db.
                         if((blToDel.getTypeId() == 63) || // is there a sign post or wall sign?
                                 (blToDel.getTypeId() == 68))
@@ -163,7 +198,7 @@ public class Assignment extends JavaPlugin implements Listener
                             {
                                 isAssSign = true;
                             }                                                                            
-                        }
+                        }                        
 
                         if(!isAssSign)
                         {   
@@ -172,12 +207,7 @@ public class Assignment extends JavaPlugin implements Listener
                             deletedCount++;   
                         }
 
-                        if(i < (signCount-1))
-                        {
-                            resSet.next();
-                            loc = new Location(getServer().getWorld(resSet.getString("world")),resSet.getDouble("x"),resSet.getDouble("y"),resSet.getDouble("z"));
-                            blToDel = loc.getBlock();
-                        }     
+                        resSet.next();  //set pointer to next row
                     }
                     if(null != sender) // is null if called by scheduler
                     {

@@ -1,6 +1,10 @@
 Changelog for Assignment by CubieX
 ----------------------------------
 
+V. 1.0.5
+- added check for config file version to prevent running Assignment with an outdated config file
+- fixed cyclic database cleanup and changed cyclic check to 3 hours
+
 V. 1.0.4
 - minor message fixes
 - made sign tags configurable
