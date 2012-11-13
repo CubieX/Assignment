@@ -111,12 +111,16 @@ public class Assignment extends JavaPlugin implements Listener
     private boolean checkConfigFileVersion()
     {
         boolean res = false;
-        String configVersion = this.getConfig().getString("config_version");
 
-        if(configVersion.equals(usedConfigVersion))
+        if(this.getConfig().isSet("config_version"))
         {
-            res = true;
-        }        
+            String configVersion = this.getConfig().getString("config_version");
+
+            if(configVersion.equals(usedConfigVersion))
+            {
+                res = true;
+            }  
+        }
 
         return (res);
     }
