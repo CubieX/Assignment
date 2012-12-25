@@ -15,15 +15,16 @@ public class sqlCore {
 	 */
 	
 	private Logger log;
+	private Assignment plugin;
 	public String dbLocation;
 	public String dbName;
 	private DatabaseHandler manageDB;
 	
-	public sqlCore(Logger log, String dbName, String dbLocation) {
+	public sqlCore(Logger log, String dbName, String dbLocation, Assignment plugin) {
 		this.log = log;
 		this.dbName = dbName;
 		this.dbLocation = dbLocation;
-		
+		this.plugin = plugin;
 	}
 	
 	public void writeInfo(String toWrite) {
@@ -53,7 +54,7 @@ public class sqlCore {
 		
 		File SQLFile = new File(dbFolder.getAbsolutePath() + "/" + dbName);
 		
-		this.manageDB = new DatabaseHandler(this, SQLFile);
+		this.manageDB = new DatabaseHandler(this, SQLFile, plugin);
 		
 		return this.manageDB.initialize();
 	}

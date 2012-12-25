@@ -45,17 +45,17 @@ public class Assignment extends JavaPlugin implements Listener
     {  
         cHandler = new ASSConfigHandler(this);
 
-        if (!setupEconomy())               
-        {
-            log.severe(logPrefix + "will be disabled now. Vault was not found!");
-            disablePlugin();
-            return;
-        }
-
         if(!checkConfigFileVersion())
         {
             log.severe(logPrefix + "Outdated or corrupted config file. Please delete your current config file, so Assignment can create a new one!");
             log.severe(logPrefix + "will be disabled now. Config file is outdated or corrupted.");
+            disablePlugin();
+            return;
+        }
+        
+        if (!setupEconomy())               
+        {
+            log.severe(logPrefix + "will be disabled now. Vault was not found!");
             disablePlugin();
             return;
         }
@@ -73,7 +73,7 @@ public class Assignment extends JavaPlugin implements Listener
         log.info(logPrefix + "SQLite Initializing");
 
         // Declare SQLite handler
-        this.manageSQLite = new sqlCore(log, "AssignmentDB", pFolder.getPath());
+        this.manageSQLite = new sqlCore(log, "AssignmentDB", pFolder.getPath(), this);
 
         // Initialize SQLite handler
         this.manageSQLite.initialize();
@@ -101,7 +101,8 @@ public class Assignment extends JavaPlugin implements Listener
             return false;
         }
         RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
-        if (rsp == null) {
+        if (rsp == null)
+        {
             return false;
         }
         econ = rsp.getProvider();

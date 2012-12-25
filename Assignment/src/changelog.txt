@@ -1,5 +1,10 @@
 Changelog for Assignment by CubieX
 ----------------------------------
+V. 1.0.6
+- All SQLite write operations are now performed in separate asynchronous threads, to decouple them from the main thread
+- Changed deprecated scheduler calls to new 1.4.6 TaskTimer() calls
+- changed initial cleanup run delay to 10 minutes. Cyclic cleanup is still performed every 3 hours.
+- build against CB 1.4.6-R0.1 Beta
 
 V. 1.0.5
 - added check for config file version to prevent running Assignment with an outdated config file

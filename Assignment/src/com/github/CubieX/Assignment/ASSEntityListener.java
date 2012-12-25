@@ -582,7 +582,7 @@ public final class ASSEntityListener implements Listener
                         }
                         else
                         {
-                            event.setCancelled(true); //cancel BlockBreak if its a registeres Assignment sign and it's not the assigner or an OP who tries to break it
+                            event.setCancelled(true); //cancel BlockBreak if its a registered Assignment sign and it's not the assigner or an OP who tries to break it
                             event.getPlayer().sendMessage(ChatColor.RED + "Du hast keine Berechtigung um dieses Auftragsschild abzureissen!");    
                         }  
                     }
@@ -624,8 +624,8 @@ public final class ASSEntityListener implements Listener
         {
             if(assRdyForPickup == 1) // there are completed assignments for this player to pick up
             { 
-                // DELAYED TASK (only called once)
-                plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
+                // DELAYED SYNCH TASK (only called once)
+                plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable()
                 {
                     public void run()
                     {
@@ -637,8 +637,8 @@ public final class ASSEntityListener implements Listener
             }
             else
             {
-                // DELAYED TASK (only called once)
-                plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, new Runnable()
+                // DELAYED SYNCH TASK (only called once)
+                plugin.getServer().getScheduler().runTaskLater(plugin, new Runnable()
                 {
                     public void run()
                     {

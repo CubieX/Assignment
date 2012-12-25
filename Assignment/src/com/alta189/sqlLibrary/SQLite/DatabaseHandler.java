@@ -8,6 +8,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.bukkit.Bukkit;
+
+import com.github.CubieX.Assignment.Assignment;
+
 public class DatabaseHandler {
 	/*
 	 * @author: alta189
@@ -17,10 +21,12 @@ public class DatabaseHandler {
 	private sqlCore core;
 	private Connection connection;
 	private File SQLFile;
+	private Assignment plugin;
 	
-	public DatabaseHandler(sqlCore core, File SQLFile) {
+	public DatabaseHandler(sqlCore core, File SQLFile, Assignment plugin) {
 		this.core = core;
 		this.SQLFile = SQLFile;
+		this.plugin = plugin;
 	}
 
 	public Connection getConnection() {
@@ -84,57 +90,78 @@ public class DatabaseHandler {
 		return null;
 	}
 	
-	public void insertQuery(String query) {
-		try {
-			Connection connection = getConnection();
-		    Statement statement = connection.createStatement();
-		    
-		    statement.executeQuery(query);
-		    
-		    
-		} catch (SQLException ex) {
-			
-			if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
-				retry(query);
-			}else{
-				if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL INSERT Query: " + ex, false);
-			}
-			
-		}
+	public void insertQuery(final String query)
+	{ // execute query asynchronous, so main thread is not blocked by SQL database operations. (Insert, Update, Delete)
+	    Bukkit.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable()
+	    {
+	        @Override
+	        public void run()
+	        {
+	            try {
+	                Connection connection = getConnection();
+	                Statement statement = connection.createStatement();
+
+	                statement.executeQuery(query);
+	            } catch (SQLException ex) {
+
+	                if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
+	                    retry(query);
+	                }else{
+	                    if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL INSERT Query: " + ex, false);
+	                }
+	            }   
+	        }
+	    });
 	}
 	
-	public void updateQuery(String query) {
-		try {
-			Connection connection = getConnection();
-		    Statement statement = connection.createStatement();
-		    
-		    statement.executeQuery(query);
-		    
-		    
-		} catch (SQLException ex) {
-			if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
-				retry(query);
-			}else{
-				if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL UPDATE Query: " + ex, false);
-			}
-		}
+	public void updateQuery(final String query)
+	{
+	 // execute query asynchronous, so main thread is not blocked by SQL database operations. (Insert, Update, Delete)
+        Bukkit.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                try {
+                    Connection connection = getConnection();
+                    Statement statement = connection.createStatement();
+                    
+                    statement.executeQuery(query);                    
+                    
+                } catch (SQLException ex) {
+                    if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
+                        retry(query);
+                    }else{
+                        if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL UPDATE Query: " + ex, false);
+                    }
+                }
+            }
+        });		
 	}
 	
-	public void deleteQuery(String query) {
-		try {
-			Connection connection = getConnection();
-		    Statement statement = connection.createStatement();
-		    
-		    statement.executeQuery(query);
-		    
-		    
-		} catch (SQLException ex) {
-			if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
-				retry(query);
-			}else{
-				if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL DELETE Query: " + ex, false);
-			}
-		}
+	public void deleteQuery(final String query)
+	{	 // execute query asynchronous, so main thread is not blocked by SQL database operations. (Insert, Update, Delete)
+	    Bukkit.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable()
+	    {
+	        @Override
+	        public void run()
+	        {
+	            try {
+	                Connection connection = getConnection();
+	                Statement statement = connection.createStatement();
+
+	                statement.executeQuery(query);
+
+
+	            } catch (SQLException ex) {
+	                if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
+	                    retry(query);
+	                }else{
+	                    if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL DELETE Query: " + ex, false);
+	                }
+	            }
+	        }
+	    });		
 	}
 	
 	public Boolean wipeTable(String table) {
