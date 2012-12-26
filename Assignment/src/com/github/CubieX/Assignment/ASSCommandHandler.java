@@ -31,7 +31,7 @@ public class ASSCommandHandler implements CommandExecutor
             player = (Player) sender;
         }
         //TODO: Liste anzeigen der eigenen Assignments (Item ID oder besser: ItemName + Koordinaten + Welt + Status)
-        if(plugin.getConfig().getBoolean("debug")){log.info("onCommand");}
+        if(Assignment.debug){log.info("onCommand");}
         if (cmd.getName().equalsIgnoreCase("ass"))
         { // If the player typed /ass then do the following... (can be run from console also)
             if (args.length == 0)

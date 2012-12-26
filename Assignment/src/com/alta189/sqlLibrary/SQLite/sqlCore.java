@@ -54,7 +54,7 @@ public class sqlCore {
 		
 		File SQLFile = new File(dbFolder.getAbsolutePath() + "/" + dbName);
 		
-		this.manageDB = new DatabaseHandler(this, SQLFile, plugin);
+		this.manageDB = new DatabaseHandler(this, SQLFile, plugin, log);
 		
 		return this.manageDB.initialize();
 	}

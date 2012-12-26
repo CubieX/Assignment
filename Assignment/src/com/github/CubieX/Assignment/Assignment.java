@@ -33,7 +33,7 @@ public class Assignment extends JavaPlugin implements Listener
     static String openAssignmentTitle = "<A>";
     static String rightClickText = "rechtsklicken!";
     static String assignmentStateCompleted = "completed";
-    private boolean debug = false;
+    public static Boolean debug = false;
     public Boolean blockNextBlockPlacing = false;
 
     //************************************************
@@ -90,9 +90,18 @@ public class Assignment extends JavaPlugin implements Listener
 
     public void setStaticValues()
     {
-        completedAssTag = this.getConfig().getString("CompletedAssignmentTag");
-        openAssignmentTitle = this.getConfig().getString("OpenAssignmentTitle");
-        rightClickText = this.getConfig().getString("RightClickText");
+        try
+        {
+            debug = this.getConfig().getBoolean("debug");
+            completedAssTag = this.getConfig().getString("CompletedAssignmentTag");
+            openAssignmentTitle = this.getConfig().getString("OpenAssignmentTitle");
+            rightClickText = this.getConfig().getString("RightClickText");
+        }
+        catch(Exception ex)
+        {
+            log.severe(logPrefix + "Config file is corrupt. Please check your syntax!");
+            log.severe(ex.getMessage());
+        }        
     }
 
     private boolean setupEconomy() 
@@ -146,101 +155,114 @@ public class Assignment extends JavaPlugin implements Listener
     }        
 
     public void cleanupAssignmentsInDB(CommandSender sender)
-    {        
-        // order is mandatory! First clause prevents exception if sender is null for second statement (will then not be evaluated).
-        if((null == sender) ||
-                sender.hasPermission("assignment.*"))
-        {          
-            int signCount = 0;
-            int deletedCount = 0;                        
-            String query = "SELECT COUNT(*) as 'count' FROM signs";
-            ResultSet resSet = null;
-            //World currentWorld = sender.getName()
-            try
+    {
+        Player permittedPlayer = null;
+
+        if((null != sender) &&
+                (sender instanceof Player))
+        {
+            if(sender.hasPermission("Assignment.*"))
             {
-                resSet = this.manageSQLite.sqlQuery(query);
-                resSet.next();       //set pointer to first row                     
-                signCount = resSet.getInt(resSet.getRow());
-            }
-            catch(Exception e)
-            {
-                if(null != sender) // is null if called by scheduler
-                {
-                    sender.sendMessage(ChatColor.YELLOW + "Die Datenbank scheint leer zu sein.");
-                }
-                else
-                {
-                    log.info(logPrefix + "Database seems to be empty.");
-                }
-            }
-
-            if(signCount > 0)
-            {                           
-                query = "SELECT x, y, z, world FROM signs";
-                try
-                {
-                    resSet = this.manageSQLite.sqlQuery(query);
-                    resSet.next();  //set pointer to first row
-
-                    Location loc;
-                    boolean isAssSign = false;                                
-
-                    Block blToDel;
-
-                    for(int i = 0; i < signCount; i++)
-                    {
-                        isAssSign = false;
-                        loc = new Location(getServer().getWorld(resSet.getString("world")),resSet.getDouble("x"),resSet.getDouble("y"),resSet.getDouble("z"));
-                        blToDel = loc.getBlock();
-
-                        //check if block is a sign, and if not, delete it from db.
-                        if((blToDel.getTypeId() == 63) || // is there a sign post or wall sign?
-                                (blToDel.getTypeId() == 68))
-                        {              
-                            Sign sign = (Sign) blToDel.getState();
-
-                            if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + completedAssTag + ">") || sign.getLine(0).contains("<" + openAssignmentTitle + ">")) // is Assignment sign?
-                            {
-                                isAssSign = true;
-                            }                                                                            
-                        }                        
-
-                        if(!isAssSign)
-                        {   
-                            query = "DELETE FROM signs WHERE x=" + resSet.getInt("x") + " AND y=" + resSet.getInt("y") + " AND z=" + resSet.getInt("z") + " AND world='" + resSet.getString("world") +"'";
-                            this.manageSQLite.deleteQuery(query);                                       
-                            deletedCount++;   
-                        }
-
-                        resSet.next();  //set pointer to next row
-                    }
-                    if(null != sender) // is null if called by scheduler
-                    {
-                        sender.sendMessage(ChatColor.GREEN + "Es wurden " + deletedCount + " ungueltige Auftraege aus der DB geloescht.");
-                    }
-                    else // is null if called by scheduler
-                    {
-                        log.info(logPrefix + deletedCount + " invalid sign entries have been deleted from the database.");
-                    }
-                }
-                catch(Exception e)
-                {
-                    log.severe(logPrefix + e.getMessage());
-                }
+                permittedPlayer = (Player)sender; // issuing instance is a player with permission to cleanup the DB
             }
             else
             {
-                sender.sendMessage(ChatColor.GREEN + "Es wurden keine ungueltigen Auftraege gefunden.");
+                sender.sendMessage(ChatColor.RED + "Du hast keine Rechte um die Datenbank aufzuraeumen!");
+            }
+        }
+
+        // order is mandatory! First clause prevents exception if sender is null for second statement (will then not be evaluated).
+        // sender will be null if called by the cleanup scheduler
+        int signCount = 0;
+        int deletedCount = 0;                        
+        String query = "SELECT COUNT(*) as 'count' FROM signs";
+        ResultSet resSet = null;
+        
+        try
+        {
+            resSet = this.manageSQLite.sqlQuery(query);
+            resSet.next();       //set pointer to first row                     
+            signCount = resSet.getInt(resSet.getRow());
+        }
+        catch(Exception e)
+        {
+            if(null != permittedPlayer) // is null if called by scheduler or console
+            {
+                permittedPlayer.sendMessage(ChatColor.YELLOW + "Die Datenbank scheint leer zu sein.");
+            }
+            else
+            {
+                log.info(logPrefix + "DB cleanup: Database seems to be empty.");
+            }
+        }
+
+        if(signCount > 0)
+        {                           
+            query = "SELECT x, y, z, world FROM signs";
+            try
+            {
+                resSet = this.manageSQLite.sqlQuery(query);
+                resSet.next();  //set pointer to first row
+
+                Location loc;
+                boolean isAssSign = false;                                
+
+                Block blToDel;
+
+                for(int i = 0; i < signCount; i++)
+                {
+                    isAssSign = false;
+                    loc = new Location(getServer().getWorld(resSet.getString("world")),resSet.getDouble("x"),resSet.getDouble("y"),resSet.getDouble("z"));
+                    blToDel = loc.getBlock();
+
+                    //check if block is a sign, and if not, delete it from db.
+                    if((blToDel.getTypeId() == 63) || // is there a sign post or wall sign?
+                            (blToDel.getTypeId() == 68))
+                    {              
+                        Sign sign = (Sign) blToDel.getState();
+
+                        if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + completedAssTag + ">") || sign.getLine(0).contains("<" + openAssignmentTitle + ">")) // is Assignment sign?
+                        {
+                            isAssSign = true;
+                        }                                                                            
+                    }                        
+
+                    if(!isAssSign)
+                    {   
+                        query = "DELETE FROM signs WHERE x=" + resSet.getInt("x") + " AND y=" + resSet.getInt("y") + " AND z=" + resSet.getInt("z") + " AND world='" + resSet.getString("world") +"'";
+                        this.manageSQLite.deleteQuery(query);                                       
+                        deletedCount++;   
+                    }
+
+                    resSet.next();  //set pointer to next row
+                }
+                if(null != permittedPlayer) // is null if called by scheduler or console
+                {
+                    permittedPlayer.sendMessage(ChatColor.GREEN + "Es wurden " + deletedCount + " ungueltige Auftraege aus der DB geloescht.");
+                }
+                else // is null if called by scheduler
+                {
+                    log.info(logPrefix + "DB cleanup: " + deletedCount + " invalid sign entries have been deleted.");
+                }
+            }
+            catch(Exception e)
+            {
+                log.severe(logPrefix + e.getMessage());
             }
         }
         else
         {
-            if(null != sender) // is null if called by scheduler
+            if(null != permittedPlayer) // is null if called by scheduler or console
             {
-                sender.sendMessage(ChatColor.RED + "You du not have sufficient permission to cleanup the database");
+                sender.sendMessage(ChatColor.GREEN + "Es wurden keine ungueltigen Auftraege gefunden.");
             }
-        }        
+            else
+            {
+                log.info(logPrefix + "DB cleanup task: No invalid assignemnts found.");
+            }
+        } // END signCount > 0
     } //END cleanup
+    
 
     //==============================================================================
     // database queries
@@ -257,7 +279,7 @@ public class Assignment extends JavaPlugin implements Listener
                 String assignerName = queryRes.getString("assigner");
                 assigner = Bukkit.getServer().getPlayer(assignerName); //ACHTUNG: DAS GEHT NUR GUT, WENN DER ASSIGNER ONLINE IST!!!
                 //Wenn er auch nicht online sein kann, dann die Methode "getAssignerNameFromDB" nutzen!
-                if(this.getConfig().getBoolean("debug")){log.info("Schild ist registriertes Assignment Schild");}  
+                if(Assignment.debug){log.info("Schild ist registriertes Assignment Schild");}  
             }
         }
         catch (Exception e)
@@ -279,7 +301,7 @@ public class Assignment extends JavaPlugin implements Listener
             if(queryRes.getRow() == 1) // query has a result, so it's a registeres sign
             { 
                 assignerName = queryRes.getString("assigner");                    
-                if(this.getConfig().getBoolean("debug")){log.info("Schild ist registriertes Assignment Schild");}  
+                if(Assignment.debug){log.info("Schild ist registriertes Assignment Schild");}  
             }
         }
         catch (Exception e)
@@ -296,7 +318,7 @@ public class Assignment extends JavaPlugin implements Listener
         try
         {            
             this.manageSQLite.deleteQuery(query);
-            if(this.getConfig().getBoolean("debug")){log.info("Schild wurde erfolgreich geloescht.");}  
+            if(Assignment.debug){log.info("Schild wurde erfolgreich geloescht.");}  
         }
         catch (Exception e)
         {
@@ -311,7 +333,7 @@ public class Assignment extends JavaPlugin implements Listener
         try
         {            
             this.manageSQLite.updateQuery(query);
-            if(this.getConfig().getBoolean("debug")){log.info("Schild wurde erfolgreich geloescht.");}  
+            if(Assignment.debug){log.info("Schild wurde erfolgreich geloescht.");}  
         }
         catch (Exception e)
         {
@@ -328,10 +350,10 @@ public class Assignment extends JavaPlugin implements Listener
         {            
             ResultSet queryRes = this.manageSQLite.sqlQuery(query);
             queryRes.next(); //move cursor to first row of result (should only have one though) 
-            if(queryRes.getRow() == 1) // query has a result, so there are completed assignments for the newly logged in player to pick up
+            if(queryRes.getInt("amount") > 0) // Get amount of found completed assignments for the newly logged in player
             { 
                 assignmentsReadyForPickup = queryRes.getInt("amount");                    
-                if(this.getConfig().getBoolean("debug")){log.info("Neu eingeloggter Spieler hat beendete Aufträge, die er abholen kann");}  
+                if(Assignment.debug){log.info("Neu eingeloggter Spieler " + loggedInPlayerName + " hat " + assignmentsReadyForPickup + " erfuellte Auftraege, die er abholen kann.");}  
             }
         }
         catch (Exception e)

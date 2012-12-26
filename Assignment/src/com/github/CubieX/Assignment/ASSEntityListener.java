@@ -42,7 +42,7 @@ public final class ASSEntityListener implements Listener
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onSignChange(SignChangeEvent event) //For the Assigner. Fires AFTER Sign Creation
     {      
-        if(plugin.getConfig().getBoolean("debug"))
+        if(Assignment.debug)
         {
             log.info("im onSignChangeEvent");
             event.getPlayer().sendMessage("Linie 0:" + event.getLine(0)); //debug
@@ -50,7 +50,7 @@ public final class ASSEntityListener implements Listener
 
         if(event.getLine(0).contains("<A>") || event.getLine(0).contains("<a>") || event.getLine(0).contains("<" + Assignment.openAssignmentTitle + ">")) //Assignment sign?
         {   
-            if(plugin.getConfig().getBoolean("debug")){log.info("Assignment-Sign erkannt");}
+            if(Assignment.debug){log.info("Assignment-Sign erkannt");}
 
             if(event.getPlayer().hasPermission("assignment.make") || event.getPlayer().hasPermission("assignment.*"))
             {
@@ -64,11 +64,11 @@ public final class ASSEntityListener implements Listener
 
                 try //correct format?
                 {
-                    if(plugin.getConfig().getBoolean("debug")){log.info("Ist das Sign korrekt geschrieben?");}
+                    if(Assignment.debug){log.info("Ist das Sign korrekt geschrieben?");}
 
                     lineArray = (event.getLine(1).split(":"));   //parse itemID:[subID]:amount
                     reward = Integer.parseInt(event.getLine(2)); //parse reward                
-                    if(plugin.getConfig().getBoolean("debug")){log.info("ArrayLength: " + String.valueOf(lineArray.length));}
+                    if(Assignment.debug){log.info("ArrayLength: " + String.valueOf(lineArray.length));}
 
                     if(lineArray.length == 2) // no subID given
                     {
@@ -120,11 +120,11 @@ public final class ASSEntityListener implements Listener
                                 event.setLine(3, assigner.getName()); //trim name to 15 characters (whole name is stored in DB, so it doesn't matter)
                             }
 
-                            if(plugin.getConfig().getBoolean("debug")){log.info("Eco transfer erfolgreich");}
+                            if(Assignment.debug){log.info("Eco transfer erfolgreich");}
                             //register sign here to protect it and know if its legal or fake
                             String query = "INSERT INTO signs (assigner, x, y, z, world, reward, state) VALUES ('" + assigner.getName() + "', " + (int)event.getBlock().getX() +  ", " + (int)event.getBlock().getY()+ ", " + (int)event.getBlock().getZ() + ", '" + event.getPlayer().getWorld().getName() + "', " + reward + ", '" + assignmentStateActive + "')";                   
                             plugin.manageSQLite.insertQuery(query);
-                            if(plugin.getConfig().getBoolean("debug")){log.info("SQL Query: " + query);} 
+                            if(Assignment.debug){log.info("SQL Query: " + query);} 
                             assigner.sendMessage(ChatColor.GREEN + "Auftrag erfolgreich erstellt!");
                         }    
                         else
@@ -167,16 +167,16 @@ public final class ASSEntityListener implements Listener
         int reward = 0;
         act = event.getAction();  
 
-        if(plugin.getConfig().getBoolean("debug")){log.info("Es klickte: " + event.getPlayer().getName());}        
-        if(plugin.getConfig().getBoolean("debug")){log.info("onPlayerInteractEntity");}
+        if(Assignment.debug){log.info("Es klickte: " + event.getPlayer().getName());}        
+        if(Assignment.debug){log.info("onPlayerInteractEntity");}
 
         if(act == Action.RIGHT_CLICK_BLOCK)
         {
-            if(plugin.getConfig().getBoolean("debug")){log.info("Rechtsklick auf BlockID " + String.valueOf(event.getClickedBlock().getTypeId())  + " erkannt");}
+            if(Assignment.debug){log.info("Rechtsklick auf BlockID " + String.valueOf(event.getClickedBlock().getTypeId())  + " erkannt");}
             if(event.getClickedBlock().getTypeId() == 63 ||
                     event.getClickedBlock().getTypeId() == 68) // Right clicked a sign on a sign on block (68) oder a signpost (63)?
             {
-                if(plugin.getConfig().getBoolean("debug")){log.info("Sign erkannt");}
+                if(Assignment.debug){log.info("Sign erkannt");}
                 sign = (Sign) event.getClickedBlock().getState();
 
                 if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + Assignment.completedAssTag + ">") || sign.getLine(0).contains("<" + Assignment.openAssignmentTitle + ">")) // is Assignment sign?
@@ -188,10 +188,10 @@ public final class ASSEntityListener implements Listener
                     }
 
                     String assName = plugin.getAssignerNameFromDB((int)sign.getX(), (int)sign.getY(), (int)sign.getZ(), sign.getWorld().getName());
-                    if(plugin.getConfig().getBoolean("debug")){log.info("assignerName: " + assName.toString() + " Spieler der klickte: " + event.getPlayer().getName());}
+                    if(Assignment.debug){log.info("assignerName: " + assName.toString() + " Spieler der klickte: " + event.getPlayer().getName());}
                     if("" != assName) //sign is registered assignment sign
                     {      
-                        if(plugin.getConfig().getBoolean("debug")){log.info("Assignment-Sign erkannt");} 
+                        if(Assignment.debug){log.info("Assignment-Sign erkannt");} 
                         try
                         {
                             if(assName.equalsIgnoreCase(event.getPlayer().getName().toString())) //assigner has clicked right on his own sign to pick up its remaining items from a completed assignment
@@ -200,23 +200,23 @@ public final class ASSEntityListener implements Listener
 
                                 if(null != assigner) // clicking player is assigner
                                 {
-                                    if(plugin.getConfig().getBoolean("debug")){log.info("Klickender Spieler ist Assigner (Stringvergleich)");} 
+                                    if(Assignment.debug){log.info("Klickender Spieler ist Assigner (Stringvergleich)");} 
                                     if(sign.getLine(0).contains("<" + Assignment.completedAssTag + ">"))
                                     {
 
-                                        if(plugin.getConfig().getBoolean("debug")){log.info("Abgeschlossenes AssignmentSign von Assigner gerechtsklickt");}  
+                                        if(Assignment.debug){log.info("Abgeschlossenes AssignmentSign von Assigner gerechtsklickt");}  
 
                                         lineArray = sign.getLine(1).split(":");                                     
                                         if(lineArray.length == 2) //no subID given
                                         {
-                                            if(plugin.getConfig().getBoolean("debug")){log.info("Zeile 1: " + lineArray[0] + " | " + lineArray[1]);}
+                                            if(Assignment.debug){log.info("Zeile 1: " + lineArray[0] + " | " + lineArray[1]);}
                                             itemID = Integer.parseInt(lineArray[0]);
                                             amount = Integer.parseInt(lineArray[1]); //amount of Items the assigner can still pick up from its completed assignment
                                             iStack = new ItemStack(Material.getMaterial(itemID), amount);
                                         }
                                         else
                                         {
-                                            if(plugin.getConfig().getBoolean("debug")){log.info("Zeile 1: " + lineArray[0] + " | " + lineArray[1] + " | " + lineArray[2]);}
+                                            if(Assignment.debug){log.info("Zeile 1: " + lineArray[0] + " | " + lineArray[1] + " | " + lineArray[2]);}
                                             itemID = Integer.parseInt(lineArray[0]);
                                             subID = Short.parseShort(lineArray[1]);
                                             amount = Integer.parseInt(lineArray[2]); //amount of Items the assigner can still pick up from its completed assignment
@@ -305,7 +305,7 @@ public final class ASSEntityListener implements Listener
                                             reward = Integer.parseInt(temp);
 
                                             iStack = new ItemStack(Material.getMaterial(itemID), amount);
-                                            if(plugin.getConfig().getBoolean("debug")){log.info("Material: " + iStack.getType().toString() + " Anzahl: " + iStack.getAmount());}                                        
+                                            if(Assignment.debug){log.info("Material: " + iStack.getType().toString() + " Anzahl: " + iStack.getAmount());}                                        
                                         }
                                         else
                                         {
@@ -316,10 +316,10 @@ public final class ASSEntityListener implements Listener
                                             reward = Integer.parseInt(temp);  
 
                                             iStack = new ItemStack(Material.getMaterial(itemID), amount, subID);
-                                            if(plugin.getConfig().getBoolean("debug")){log.info("Material: " + iStack.getType().toString() + " Anzahl: " + iStack.getAmount());}      
+                                            if(Assignment.debug){log.info("Material: " + iStack.getType().toString() + " Anzahl: " + iStack.getAmount());}      
                                         }                                   
 
-                                        if(plugin.getConfig().getBoolean("debug")){log.info("ItemID: " + String.valueOf(itemID) + " SubID: " + String.valueOf(subID) + ", Anzahl: " + String.valueOf(amount) + " , Belohnung: " + String.valueOf(reward));}
+                                        if(Assignment.debug){log.info("ItemID: " + String.valueOf(itemID) + " SubID: " + String.valueOf(subID) + ", Anzahl: " + String.valueOf(amount) + " , Belohnung: " + String.valueOf(reward));}
 
                                         // block next occurring BlockPlace()-action to prevent dupe bug (assignee will otherwise place the block in hand in front of the sign, causing a dupe exploit,
                                         // if it is the same block which is requested by the assignment)
@@ -343,7 +343,7 @@ public final class ASSEntityListener implements Listener
                                         }
                                         else //assignee has enough of the item to complete the assignment
                                         {
-                                            if(plugin.getConfig().getBoolean("debug")){log.info(ChatColor.GREEN + "Du hast die noetigen Waren dabei. Sehr gut!");}                           
+                                            if(Assignment.debug){log.info(ChatColor.GREEN + "Du hast die noetigen Waren dabei. Sehr gut!");}                           
                                             EconomyResponse ecoRes = Assignment.econ.depositPlayer(assignee.getName(), reward); //give assignee his reward
                                             if(ecoRes.transactionSuccess())
                                             {
@@ -503,7 +503,7 @@ public final class ASSEntityListener implements Listener
                         }
                         catch(Exception e)
                         {
-                            if(plugin.getConfig().getBoolean("debug")){log.info("Fehler beim parsen des Schilds. " + e.toString());}
+                            if(Assignment.debug){log.info("Fehler beim parsen des Schilds. " + e.toString());}
                             event.getPlayer().sendMessage(ChatColor.RED + "Dieses Schild ist nicht vollstaendig oder nicht korrekt.");
                         }                    
                     }
@@ -521,13 +521,13 @@ public final class ASSEntityListener implements Listener
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false) // -> priority MUST BE HIGHER to protect the sign
     public void onBlockBreak(BlockBreakEvent event) //For the Assignee
     {        
-        if(plugin.getConfig().getBoolean("debug")){log.info("im onBlockBreakEvent");}
+        if(Assignment.debug){log.info("im onBlockBreakEvent");}
         if(event.getBlock().getTypeId() == 63 ||
                 event.getBlock().getTypeId() == 68) // a sign on a sign on block (68) oder a signpost (63)?
         {
-            if(plugin.getConfig().getBoolean("debug")){log.info("Sign erkannt");}
+            if(Assignment.debug){log.info("Sign erkannt");}
             Sign bSign = (Sign)event.getBlock().getState();
-            if(plugin.getConfig().getBoolean("debug")){log.info("Sign Line 0: " + bSign.getLine(0));}
+            if(Assignment.debug){log.info("Sign Line 0: " + bSign.getLine(0));}
 
             if(bSign.getLine(0).contains("<A>") || bSign.getLine(0).contains("<a>") || bSign.getLine(0).contains("<" + Assignment.completedAssTag + ">") || bSign.getLine(0).contains("<" + Assignment.openAssignmentTitle + ">")) // is Assignment sign?
             {
@@ -536,7 +536,7 @@ public final class ASSEntityListener implements Listener
 
                 if("" != assignerName) // sign is registered assignment sign
                 {            
-                    if(plugin.getConfig().getBoolean("debug")){log.info("Assignment Sign erkannt");}
+                    if(Assignment.debug){log.info("Assignment Sign erkannt");}
 
                     try
                     {   
@@ -551,9 +551,9 @@ public final class ASSEntityListener implements Listener
                                 plugin.manageSQLite.deleteQuery(dquery);
                                 event.getPlayer().sendMessage(ChatColor.YELLOW + "Die restlichen Items sind hiermit verfallen.");
                                 event.getPlayer().sendMessage(ChatColor.YELLOW + "Dieser Auftrag wurde geloescht.");
-                                if(plugin.getConfig().getBoolean("debug")){log.info("player has permission to break it");}
+                                if(Assignment.debug){log.info("player has permission to break it");}
                             }
-                            else // he cancels the unfullfilled assignment, so pay his money back
+                            else // he cancels the unfulfilled assignment, so pay his money back
                             {
                                 try
                                 {
@@ -571,7 +571,7 @@ public final class ASSEntityListener implements Listener
                                         //delete sign from DB                                        
                                         plugin.deleteSignFromDB((int)bSign.getX(), (int)bSign.getY(), (int)bSign.getZ(), bSign.getWorld().getName());
                                         event.getPlayer().sendMessage(ChatColor.YELLOW + "Dieser Auftrag wurde hiermit geloescht.");
-                                        if(plugin.getConfig().getBoolean("debug")){log.info("player has permission to break it");}
+                                        if(Assignment.debug){log.info("player has permission to break it");}
                                     }
                                 }
                                 catch (Exception e)

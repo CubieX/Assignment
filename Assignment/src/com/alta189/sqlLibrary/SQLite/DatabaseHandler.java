@@ -7,8 +7,11 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Calendar;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.libs.jline.internal.Log;
 
 import com.github.CubieX.Assignment.Assignment;
 
@@ -22,11 +25,14 @@ public class DatabaseHandler {
 	private Connection connection;
 	private File SQLFile;
 	private Assignment plugin;
+	private Logger log;
 	
-	public DatabaseHandler(sqlCore core, File SQLFile, Assignment plugin) {
+	public DatabaseHandler(sqlCore core, File SQLFile, Assignment plugin, Logger log)
+	{
 		this.core = core;
 		this.SQLFile = SQLFile;
 		this.plugin = plugin;
+		this.log = log;
 	}
 
 	public Connection getConnection() {
@@ -71,21 +77,24 @@ public class DatabaseHandler {
 		}
 	}
 	
-	public ResultSet sqlQuery(String query) {
-		try {
+	public ResultSet sqlQuery(String query)
+	{
+		try
+		{
 			Connection connection = getConnection();
 		    Statement statement = connection.createStatement();
 		    
 		    ResultSet result = statement.executeQuery(query);
 		    
 		    return result;
-		} catch (SQLException ex) {
+		}
+		catch (SQLException ex)
+		{
 			if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
 				return retryResult(query);
 			}else{
 				core.writeError("Error at SQL Query: " + ex.getMessage(), false);
-			}
-			
+			}			
 		}
 		return null;
 	}
@@ -97,19 +106,29 @@ public class DatabaseHandler {
 	        @Override
 	        public void run()
 	        {
-	            try {
+	            long startTime = ((Calendar)Calendar.getInstance()).getTimeInMillis();
+	            
+	            try
+	            {
 	                Connection connection = getConnection();
 	                Statement statement = connection.createStatement();
 
 	                statement.executeQuery(query);
-	            } catch (SQLException ex) {
+	            }
+	            catch (SQLException ex)
+	            {
 
 	                if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
 	                    retry(query);
 	                }else{
 	                    if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL INSERT Query: " + ex, false);
 	                }
-	            }   
+	            }
+	            
+	            if(Assignment.debug)
+                {
+                    log.info(Assignment.logPrefix + "INSERT-Query executed in: " + (((Calendar)Calendar.getInstance()).getTimeInMillis() - startTime) + " milliseconds.");
+                }
 	        }
 	    });
 	}
@@ -122,6 +141,8 @@ public class DatabaseHandler {
             @Override
             public void run()
             {
+                long startTime = ((Calendar)Calendar.getInstance()).getTimeInMillis();
+                
                 try {
                     Connection connection = getConnection();
                     Statement statement = connection.createStatement();
@@ -135,30 +156,42 @@ public class DatabaseHandler {
                         if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL UPDATE Query: " + ex, false);
                     }
                 }
+                
+                if(Assignment.debug)
+                {
+                    log.info(Assignment.logPrefix + "UPDATE-Query executed in: " + (((Calendar)Calendar.getInstance()).getTimeInMillis() - startTime) + " milliseconds.");
+                }
             }
         });		
 	}
 	
 	public void deleteQuery(final String query)
-	{	 // execute query asynchronous, so main thread is not blocked by SQL database operations. (Insert, Update, Delete)
+	{   // execute query asynchronous, so main thread is not blocked by SQL database operations. (Insert, Update, Delete)
 	    Bukkit.getServer().getScheduler().runTaskAsynchronously(plugin, new Runnable()
 	    {
 	        @Override
 	        public void run()
 	        {
-	            try {
+	            long startTime = ((Calendar)Calendar.getInstance()).getTimeInMillis();
+
+	            try
+	            {
 	                Connection connection = getConnection();
 	                Statement statement = connection.createStatement();
 
-	                statement.executeQuery(query);
-
-
-	            } catch (SQLException ex) {
+	                statement.executeQuery(query);	                    
+	            }
+	            catch (SQLException ex) {
 	                if (ex.getMessage().toLowerCase().contains("locking") || ex.getMessage().toLowerCase().contains("locked")) {
 	                    retry(query);
 	                }else{
 	                    if (!ex.toString().contains("not return ResultSet")) core.writeError("Error at SQL DELETE Query: " + ex, false);
 	                }
+	            }
+	            
+	            if(Assignment.debug)
+	            {
+	                log.info(Assignment.logPrefix + "DELETE-Query executed in: " + (((Calendar)Calendar.getInstance()).getTimeInMillis() - startTime) + " milliseconds.");
 	            }
 	        }
 	    });		
