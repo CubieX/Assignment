@@ -61,8 +61,14 @@ public class ASSCommandHandler implements CommandExecutor
 
                 if (args[0].equalsIgnoreCase("cleanup")) // argument 0 is given and correct
                 {// Deletes all invalid assignments from DB (= Assignments where there is no sign for them any more)
-
-                    plugin.cleanupAssignmentsInDB(sender);
+                    if(sender.hasPermission("assignment.*"))
+                    {
+                        plugin.cleanupAssignmentsInDB(sender);
+                    }
+                    else
+                    {
+                        sender.sendMessage(ChatColor.RED + "Du hast keine Rechte um die Datenbank aufzuraeumen!");
+                    }
                     return true;
                 }
                 // TODO Liste im Chat auf Seiten aufteilen wenn lang! Es gibt da ne Bukkit-Methode für... 

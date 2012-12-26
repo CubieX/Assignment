@@ -57,12 +57,12 @@ public final class ASSEntityListener implements Listener
                 assigner = event.getPlayer(); 
                 String[] lineArray;
                 int itemID = 0;
-                byte subID = -1; //byte in JAVA has -128 to 127 range!
+                short subID = -1; //short in JAVA has 16 bits range! (-32768 to 32767). MC uses short as ItemStack parameter "damage" which is also used as SubID!
                 int reward = 0;         
                 int amount = 0;           
                 boolean parsingOK = true;
 
-                try //correct format?
+                try //correct format and valid item/block?
                 {
                     if(Assignment.debug){log.info("Ist das Sign korrekt geschrieben?");}
 
@@ -72,28 +72,33 @@ public final class ASSEntityListener implements Listener
 
                     if(lineArray.length == 2) // no subID given
                     {
-                        itemID = Byte.parseByte(lineArray[0]); //parse itemID
+                        itemID = Integer.parseInt(lineArray[0]); //parse itemID
                         amount = Integer.parseInt(lineArray[1]); //parse amount  
 
-                        if(!(itemID > 0 && amount > 0 && reward > 0))
-                        {                        
-                            parsingOK = false;
+                        if((null == Material.getMaterial(itemID)) ||
+                                (amount <= 0) ||
+                                (reward <= 0))
+                        {
+                            parsingOK = false;                                                    
                         }
                     }
                     else
                     {
                         itemID = Integer.parseInt(lineArray[0]); //parse itemID
-                        subID = Byte.parseByte(lineArray[1]); //parse subID. (in an ItemStack, subID is the "damage" argument and stored as Short)
+                        subID = Short.parseShort(lineArray[1]); //parse subID. (in an ItemStack, subID is the "damage" argument and stored as Short)
                         amount = Integer.parseInt(lineArray[2]); //parse amount  
 
-                        if(!(itemID > 0 && subID >= 0 && amount > 0 && reward > 0))
-                        {                        
+                        if((null == Material.getMaterial(itemID)) ||
+                                (subID <= 0) ||
+                                (amount <= 0) ||
+                                (reward <= 0))
+                        {                                               
                             parsingOK = false;
                         }
                     }                    
                 }
                 catch (Exception e)
-                {                   
+                {
                     //not a number. Abort.                
                     event.getBlock().breakNaturally();
                     assigner.sendMessage(ChatColor.YELLOW + "Hilfe: 1. Zeile: <A> 2. Zeile: ItemID:[SubID:]Anzahl 3. Zeile: Geld-Belohnung");
@@ -101,6 +106,7 @@ public final class ASSEntityListener implements Listener
                     parsingOK = false;
                     return; //leave method
                 }//TODO Evt. ItemName auf Schild anstatt der ID ermöglichen (ähnlich ChestShop). Wird aber problematisch wg. Länge...
+                
                 if(parsingOK)
                 {           
                     event.setLine(0, "<" + Assignment.openAssignmentTitle + ">");
@@ -126,15 +132,17 @@ public final class ASSEntityListener implements Listener
                             plugin.manageSQLite.insertQuery(query);
                             if(Assignment.debug){log.info("SQL Query: " + query);} 
                             assigner.sendMessage(ChatColor.GREEN + "Auftrag erfolgreich erstellt!");
-                        }    
+                        }
                         else
                         {
+                            // Eco transfer failed. Abort.
                             assigner.sendMessage(ChatColor.RED + "Fehler bem uebertragen der Belohnung in die Datenbank. Bitte melde das einem Admin!");
                             log.severe(Assignment.logPrefix + "Error on depositing the reward into the DB.");
                         }                      
                     }
                     else
                     {
+                        //not enough money. Abort. 
                         event.getBlock().breakNaturally();
                         assigner.sendMessage(ChatColor.YELLOW + "Du hast leider nicht genuegend Geld um dir diesen Auftrag leisten zu koennen.");                        
                     }                              
@@ -148,6 +156,7 @@ public final class ASSEntityListener implements Listener
             }
             else
             {
+                // no permission. Abort.
                 event.getBlock().breakNaturally();
                 event.getPlayer().sendMessage(ChatColor.RED + "Du hast keine Berechtigung um Auftraege auszuschreiben.");
             }            
@@ -161,7 +170,7 @@ public final class ASSEntityListener implements Listener
         Sign sign = null; 
         String[] lineArray;
         int itemID = 0;
-        short subID = 0;
+        short subID = -1;
         ItemStack iStack;
         int amount = 0;
         int reward = 0;
@@ -489,7 +498,9 @@ public final class ASSEntityListener implements Listener
                                 itemID = Integer.parseInt(lineArray[0]);                                        
                                 amount = Integer.parseInt(lineArray[1]);
                                 String temp = sign.getLine(2).replace(currency, "").trim();
-                                reward = Integer.parseInt(temp);  
+                                reward = Integer.parseInt(temp);
+                                
+                                event.getPlayer().sendMessage(ChatColor.GREEN + "Der Auftraggeber " + ChatColor.YELLOW + sign.getLine(3) + ChatColor.GREEN + " bezahlt " + String.valueOf(reward) + " " + currency + " fuer " + String.valueOf(amount) + " " + Material.getMaterial(itemID).toString() + ".");
                             }
                             else
                             {
@@ -497,9 +508,10 @@ public final class ASSEntityListener implements Listener
                                 subID = Short.parseShort(lineArray[1]);
                                 amount = Integer.parseInt(lineArray[2]);
                                 String temp = sign.getLine(2).replace(currency, "").trim();
-                                reward = Integer.parseInt(temp);  
-                            }        
-                            event.getPlayer().sendMessage(ChatColor.GREEN + "Der Auftraggeber " + ChatColor.YELLOW + sign.getLine(3) + ChatColor.GREEN + " bezahlt " + String.valueOf(reward) + " " + currency + " fuer " + String.valueOf(amount) + " " + Material.getMaterial(itemID).toString() + ":" + String.valueOf(subID) + ".");
+                                reward = Integer.parseInt(temp);
+                                
+                                event.getPlayer().sendMessage(ChatColor.GREEN + "Der Auftraggeber " + ChatColor.YELLOW + sign.getLine(3) + ChatColor.GREEN + " bezahlt " + String.valueOf(reward) + " " + currency + " fuer " + String.valueOf(amount) + " " + Material.getMaterial(itemID).toString() + ":" + String.valueOf(subID) + ".");
+                            }                            
                         }
                         catch(Exception e)
                         {

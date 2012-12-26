@@ -1,5 +1,10 @@
 Changelog for Assignment by CubieX
 ----------------------------------
+V. 1.0.8
+- moved permission check for cleanup command to CommandHandler
+- fixed datatypes for ItemIDs and SubIDs and implemented check for valid ItemID
+- fixed some typos and minor improvements for user messages
+
 V. 1.0.7
 - added time measurements for debug mode in SQL module
 - fixed console output on DB cleanup, which caused an exception when called by the cyclic scheduler and DB had no invalid entries

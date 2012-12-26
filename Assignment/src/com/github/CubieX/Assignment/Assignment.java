@@ -156,19 +156,12 @@ public class Assignment extends JavaPlugin implements Listener
 
     public void cleanupAssignmentsInDB(CommandSender sender)
     {
-        Player permittedPlayer = null;
+        Player player = null;
 
         if((null != sender) &&
                 (sender instanceof Player))
-        {
-            if(sender.hasPermission("Assignment.*"))
-            {
-                permittedPlayer = (Player)sender; // issuing instance is a player with permission to cleanup the DB
-            }
-            else
-            {
-                sender.sendMessage(ChatColor.RED + "Du hast keine Rechte um die Datenbank aufzuraeumen!");
-            }
+        {           
+            player = (Player)sender; // issuing instance is a player with permission to cleanup the DB            
         }
 
         // order is mandatory! First clause prevents exception if sender is null for second statement (will then not be evaluated).
@@ -186,9 +179,9 @@ public class Assignment extends JavaPlugin implements Listener
         }
         catch(Exception e)
         {
-            if(null != permittedPlayer) // is null if called by scheduler or console
+            if(null != player) // is null if called by scheduler or console
             {
-                permittedPlayer.sendMessage(ChatColor.YELLOW + "Die Datenbank scheint leer zu sein.");
+                player.sendMessage(ChatColor.YELLOW + "Die Datenbank scheint leer zu sein.");
             }
             else
             {
@@ -236,9 +229,9 @@ public class Assignment extends JavaPlugin implements Listener
 
                     resSet.next();  //set pointer to next row
                 }
-                if(null != permittedPlayer) // is null if called by scheduler or console
+                if(null != player) // is null if called by scheduler or console
                 {
-                    permittedPlayer.sendMessage(ChatColor.GREEN + "Es wurden " + deletedCount + " ungueltige Auftraege aus der DB geloescht.");
+                    player.sendMessage(ChatColor.GREEN + "Es wurden " + deletedCount + " ungueltige Auftraege aus der DB geloescht.");
                 }
                 else // is null if called by scheduler
                 {
@@ -252,13 +245,13 @@ public class Assignment extends JavaPlugin implements Listener
         }
         else
         {
-            if(null != permittedPlayer) // is null if called by scheduler or console
+            if(null != player) // is null if called by scheduler or console
             {
-                sender.sendMessage(ChatColor.GREEN + "Es wurden keine ungueltigen Auftraege gefunden.");
+                player.sendMessage(ChatColor.GREEN + "Es wurden keine ungueltigen Auftraege gefunden.");
             }
             else
             {
-                log.info(logPrefix + "DB cleanup task: No invalid assignemnts found.");
+                log.info(logPrefix + "DB cleanup task: No invalid assignments found.");
             }
         } // END signCount > 0
     } //END cleanup
