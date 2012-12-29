@@ -11,161 +11,163 @@ import org.bukkit.entity.Player;
 
 public class ASSCommandHandler implements CommandExecutor
 {
-    private final Assignment plugin;
-    private final ASSConfigHandler cHandler;
-    private final Logger log;
+   private final Assignment plugin;
+   private final ASSConfigHandler cHandler;
+   private final Logger log;
 
-    // constructor
-    public ASSCommandHandler(Assignment plugin, Logger log, ASSConfigHandler cHandler)
-    {
-        this.plugin = plugin;
-        this.cHandler = cHandler;
-        this.log = log;  
-    }
+   // constructor
+   public ASSCommandHandler(Assignment plugin, Logger log, ASSConfigHandler cHandler)
+   {
+      this.plugin = plugin;
+      this.cHandler = cHandler;
+      this.log = log;  
+   }
 
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args)
-    {
-        Player player = null;
-        if (sender instanceof Player) 
-        {
-            player = (Player) sender;
-        }
-        //TODO: Liste anzeigen der eigenen Assignments (Item ID oder besser: ItemName + Koordinaten + Welt + Status)
-        if(Assignment.debug){log.info("onCommand");}
-        if (cmd.getName().equalsIgnoreCase("ass"))
-        { // If the player typed /ass then do the following... (can be run from console also)
-            if (args.length == 0)
-            { //no arguments, so help will be displayed
-                return false;
+   public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args)
+   {
+      Player player = null;
+      if (sender instanceof Player) 
+      {
+         player = (Player) sender;
+      }
+      
+      if(Assignment.debug){log.info("onCommand");}
+      if (cmd.getName().equalsIgnoreCase("ass"))
+      { // If the player typed /ass then do the following... (can be run from console also)
+         if (args.length == 0)
+         { //no arguments, so help will be displayed
+            return false;
+         }
+         
+         if (args.length == 1)
+         {
+            if (args[0].equalsIgnoreCase("version")) // argument 0 is given and correct
+            {            
+               sender.sendMessage(ChatColor.GREEN + "This server is running " + Assignment.logPrefix + "version " + plugin.getDescription().getVersion());
+               return true;
+            } //END version   
+            if (args[0].equalsIgnoreCase("reload")) // argument 0 is given and correct
+            {            
+               if(sender.hasPermission("assignment.*"))
+               {
+                  cHandler.reloadConfig();
+                  sender.sendMessage("[" + ChatColor.GREEN + "Info" + ChatColor.WHITE + "] " + ChatColor.YELLOW + Assignment.logPrefix + plugin.getDescription().getVersion() + " reloaded!");                        
+               }
+               else
+               {
+                  sender.sendMessage(ChatColor.RED + "You do not have sufficient permission to reload Assignment plugin!");
+               }
+               return true;
+            } //END reload
+
+            if (args[0].equalsIgnoreCase("cleanup")) // argument 0 is given and correct
+            {// Deletes all invalid assignments from DB (= Assignments where there is no sign for them any more)
+               if(sender.hasPermission("assignment.*"))
+               {
+                  plugin.cleanupAssignmentsInDB(sender);
+               }
+               else
+               {
+                  sender.sendMessage(ChatColor.RED + "Du hast keine Rechte um die Datenbank aufzuraeumen!");
+               }
+               return true;
             }
-            if (args.length==1)
-            {
-                if (args[0].equalsIgnoreCase("version")) // argument 0 is given and correct
-                {            
-                    sender.sendMessage(ChatColor.GREEN + "This server is running " + Assignment.logPrefix + "version " + plugin.getDescription().getVersion());
-                    return true;
-                } //END version   
-                if (args[0].equalsIgnoreCase("reload")) // argument 0 is given and correct
-                {            
-                    if(sender.hasPermission("assignment.*"))
-                    {
-                        cHandler.reloadConfig();
-                        sender.sendMessage("[" + ChatColor.GREEN + "Info" + ChatColor.WHITE + "] " + ChatColor.YELLOW + Assignment.logPrefix + plugin.getDescription().getVersion() + " reloaded!");                        
-                    }
-                    else
-                    {
-                        sender.sendMessage(ChatColor.RED + "You do not have sufficient permission to reload Assignment plugin!");
-                    }
-                    return true;
-                } //END reload
-
-                if (args[0].equalsIgnoreCase("cleanup")) // argument 0 is given and correct
-                {// Deletes all invalid assignments from DB (= Assignments where there is no sign for them any more)
-                    if(sender.hasPermission("assignment.*"))
-                    {
-                        plugin.cleanupAssignmentsInDB(sender);
-                    }
-                    else
-                    {
-                        sender.sendMessage(ChatColor.RED + "Du hast keine Rechte um die Datenbank aufzuraeumen!");
-                    }
-                    return true;
-                }
-                // TODO Liste im Chat auf Seiten aufteilen wenn lang! Es gibt da ne Bukkit-Methode für... 
-                if ((args[0].equalsIgnoreCase("list")) ||
-                        (args[0].equalsIgnoreCase("liste")))
-                { // lists all assignments of the player
-                    if(sender instanceof Player)
-                    {
-                        queryForAssignmentList(sender, sender.getName());
-                    }
-                    else
-                    {
-                        sender.sendMessage(Assignment.logPrefix + "Es wird ein Spieler erwartet!");
-                    }
-                    return true;
-                }
+            // TODO Liste im Chat auf Seiten aufteilen wenn lang! Es gibt da ne Bukkit-Methode für... 
+            if ((args[0].equalsIgnoreCase("list")) ||
+                  (args[0].equalsIgnoreCase("liste")))
+            { // lists all assignments of the player
+               if(sender instanceof Player)
+               {
+                  queryForAssignmentList(sender, sender.getName());
+               }
+               else
+               {
+                  sender.sendMessage(Assignment.logPrefix + "Es wird ein Spieler erwartet!");
+               }
+               return true;
             }
-            if (args.length==2)
+         }
+         
+         if (args.length == 2)
+         {
+            if ((args[0].equalsIgnoreCase("list")) ||
+                  (args[0].equalsIgnoreCase("liste")))                        
+            {// lists assignments of given player
+               if(sender instanceof Player)
+               {
+                  if(sender.hasPermission("assignment.*") || (sender.hasPermission("assignment.listother")))
+                  {
+                     queryForAssignmentList(sender, args[1]);
+                  }
+                  else
+                  {
+                     sender.sendMessage(ChatColor.RED + "You do not have sufficient permission to list other players assignments!");
+                  }
+               }
+               else
+               {
+                  queryForAssignmentList(sender, args[1]);
+               }                    
+               return true;
+            }
+         }
+         else
+         {
+            sender.sendMessage(ChatColor.YELLOW + "Falsche Anzahl an Parametern.");
+         }
+      }         
+      return false; // if false is returned, the help for the command stated in the plugin.yml will be displayed to the player
+   }
+
+   void queryForAssignmentList(CommandSender sender, String queriedPlayer)
+   {
+      ResultSet resSet = plugin.getAssignmentList(queriedPlayer.trim());
+
+      if(null != resSet)
+      {
+         readAssignmentList(sender, resSet, queriedPlayer.trim());
+
+      }
+      else
+      {
+         sender.sendMessage(ChatColor.GREEN + "Es wurden keine Auftraege gefunden.");
+      }
+   }
+
+   void readAssignmentList(CommandSender sender, ResultSet resSet, String queriedPlayer)
+   {
+      String aState = "";
+      boolean assignmentFound = false;
+
+      try // TODO Seitenweise im Chat anzeigen. Gibt Bukkit-Methode dafür.
+      {            
+         sender.sendMessage("Auftragsliste von: " + ChatColor.GREEN + queriedPlayer);
+         sender.sendMessage("---------------------------------------------------");
+
+         while(resSet.next())
+         {
+            assignmentFound = true;
+
+            if(resSet.getString("state").equalsIgnoreCase("active"))
             {
-                if ((args[0].equalsIgnoreCase("list")) ||
-                        (args[0].equalsIgnoreCase("liste")))                        
-                {// lists assignments of given player
-                    if(sender instanceof Player)
-                    {
-                        if(sender.hasPermission("assignment.*") || (sender.hasPermission("assignment.listother")))
-                        {
-                            queryForAssignmentList(sender, args[1]);
-                        }
-                        else
-                        {
-                            sender.sendMessage(ChatColor.RED + "You do not have sufficient permission to list other players assignments!");
-                        }
-                    }
-                    else
-                    {
-                        queryForAssignmentList(sender, args[1]);
-                    }                    
-                    return true;
-                }
+               aState = ChatColor.GREEN + "offen";
             }
             else
             {
-                sender.sendMessage(ChatColor.YELLOW + "Falsche Anzahl an Parametern.");
+               aState = ChatColor.YELLOW + "abholbar";
             }
-        }         
-        return false; // if false is returned, the help for the command stated in the plugin.yml will be displayed to the player
-    }
-    
-    void queryForAssignmentList(CommandSender sender, String queriedPlayer)
-    {
-        ResultSet resSet = plugin.getAssignmentList(queriedPlayer.trim());
 
-        if(null != resSet)
-        {
-            readAssignmentList(sender, resSet, queriedPlayer.trim());
-
-        }
-        else
-        {
-            sender.sendMessage(ChatColor.GREEN + "Es wurden keine Auftraege gefunden.");
-        }
-    }
-
-    void readAssignmentList(CommandSender sender, ResultSet resSet, String queriedPlayer)
-    {
-        String aState = "";
-        boolean assignmentFound = false;
-
-        try
-        {            
-            sender.sendMessage("Auftragsliste von: " + ChatColor.GREEN + queriedPlayer);
-            sender.sendMessage("---------------------------------------------------");
-
-            while(resSet.next())
-            {
-                assignmentFound = true;
-
-                if(resSet.getString("state").equalsIgnoreCase("active"))
-                {
-                    aState = ChatColor.GREEN + "offen";
-                }
-                else
-                {
-                    aState = ChatColor.YELLOW + "abholbar";
-                }
-
-                sender.sendMessage("Nr " + ChatColor.GREEN + resSet.getRow() + ChatColor.WHITE + " am Standort: " + resSet.getString("x") + ", " + resSet.getString("y") + ", " + resSet.getString("z") + " in " + resSet.getString("world") + " ist " + aState);
-            }
-            if(!assignmentFound)
-            {
-                sender.sendMessage(ChatColor.YELLOW + "Keine Auftraege gefunden.");
-            }
-            sender.sendMessage("---------------------------------------------------");
-        }
-        catch (Exception ex)
-        {
-            // nothing to do.
-        }
-    }
+            sender.sendMessage("Nr " + ChatColor.GREEN + resSet.getRow() + ChatColor.WHITE + " am Standort: " + resSet.getString("x") + ", " + resSet.getString("y") + ", " + resSet.getString("z") + " in " + resSet.getString("world") + " ist " + aState);
+         }
+         if(!assignmentFound)
+         {
+            sender.sendMessage(ChatColor.YELLOW + "Keine Auftraege gefunden.");
+         }
+         sender.sendMessage("---------------------------------------------------");
+      }
+      catch (Exception ex)
+      {
+         // nothing to do.
+      }
+   }
 }

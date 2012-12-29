@@ -18,357 +18,357 @@ import com.alta189.sqlLibrary.SQLite.sqlCore;
 
 public class Assignment extends JavaPlugin implements Listener
 {    
-    private static final Logger log = Logger.getLogger("Minecraft");
-    public static String logPrefix = "[Assignment] "; // Prefix to go in front of all log entries
-    private ASSConfigHandler cHandler = null;
-    private ASSEntityListener eListener = null;
-    private ASSSchedulerHandler schedHandler = null;
-    private ASSCommandHandler comHandler = null;
-    public static Economy econ = null;
-    public File pFolder = new File("plugins" + File.separator + "Assignment"); // Folder to store plugin settings file and database
-    public sqlCore manageSQLite; // SQLite handler
+   private static final Logger log = Logger.getLogger("Minecraft");
+   public static String logPrefix = "[Assignment] "; // Prefix to go in front of all log entries
+   private ASSConfigHandler cHandler = null;
+   private ASSEntityListener eListener = null;
+   private ASSSchedulerHandler schedHandler = null;
+   private ASSCommandHandler comHandler = null;
+   public static Economy econ = null;
+   public File pFolder = new File("plugins" + File.separator + "Assignment"); // Folder to store plugin settings file and database
+   public sqlCore manageSQLite; // SQLite handler
 
-    private Player assigner = null;
-    static String completedAssTag = "<E>";
-    static String openAssignmentTitle = "<A>";
-    static String rightClickText = "rechtsklicken!";
-    static String assignmentStateCompleted = "completed";
-    public static Boolean debug = false;
-    public Boolean blockNextBlockPlacing = false;
+   private Player assigner = null;
+   static String completedAssTag = "<E>";
+   static String openAssignmentTitle = "<A>";
+   static String rightClickText = "rechtsklicken!";
+   static String assignmentStateCompleted = "completed";
+   public static Boolean debug = false;
+   public Boolean blockNextBlockPlacing = false;
 
-    //************************************************
-    static String usedConfigVersion = "2"; // Update this every time the config file version changes, so the plugin knows, if there is a suiting config present
-    //************************************************
+   //************************************************
+   static String usedConfigVersion = "2"; // Update this every time the config file version changes, so the plugin knows, if there is a suiting config present
+   //************************************************
 
-    @Override
-    public void onEnable()
-    {  
-        cHandler = new ASSConfigHandler(this);
+   @Override
+   public void onEnable()
+   {  
+      cHandler = new ASSConfigHandler(this);
 
-        if(!checkConfigFileVersion())
-        {
-            log.severe(logPrefix + "Outdated or corrupted config file. Please delete your current config file, so Assignment can create a new one!");
-            log.severe(logPrefix + "will be disabled now. Config file is outdated or corrupted.");
-            disablePlugin();
-            return;
-        }
-        
-        if (!setupEconomy())               
-        {
-            log.severe(logPrefix + "will be disabled now. Vault was not found!");
-            disablePlugin();
-            return;
-        }
+      if(!checkConfigFileVersion())
+      {
+         log.severe(logPrefix + "Outdated or corrupted config file. Please delete your current config file, so Assignment can create a new one!");
+         log.severe(logPrefix + "will be disabled now. Config file is outdated or corrupted.");
+         disablePlugin();
+         return;
+      }
 
-        log.info(getDescription().getName() + " version " + getDescription().getVersion() + " is enabled!");
+      if (!setupEconomy())               
+      {
+         log.severe(logPrefix + "will be disabled now. Vault was not found!");
+         disablePlugin();
+         return;
+      }
 
-        eListener = new ASSEntityListener(this, log);
-        schedHandler = new ASSSchedulerHandler(this);
-        comHandler = new ASSCommandHandler(this, log, cHandler);
-        getCommand("ass").setExecutor(comHandler);
+      log.info(getDescription().getName() + " version " + getDescription().getVersion() + " is enabled!");
 
-        setStaticValues();
+      eListener = new ASSEntityListener(this, log);
+      schedHandler = new ASSSchedulerHandler(this);
+      comHandler = new ASSCommandHandler(this, log, cHandler);
+      getCommand("ass").setExecutor(comHandler);
 
-        // Initializing SQLite ++++++++++++++++++++++++++++++++++++++++++++
-        log.info(logPrefix + "SQLite Initializing");
+      setStaticValues();
 
-        // Declare SQLite handler
-        this.manageSQLite = new sqlCore(log, "AssignmentDB", pFolder.getPath(), this);
+      // Initializing SQLite ++++++++++++++++++++++++++++++++++++++++++++
+      log.info(logPrefix + "SQLite Initializing");
 
-        // Initialize SQLite handler
-        this.manageSQLite.initialize();
+      // Declare SQLite handler
+      this.manageSQLite = new sqlCore(log, "AssignmentDB", pFolder.getPath(), this);
 
-        // Check if the table exists, if it doesn't create it
-        if (!this.manageSQLite.checkTable("signs")) {
-            log.info(logPrefix + "Creating table signs");
-            String query = "CREATE TABLE signs (id INTEGER PRIMARY KEY AUTOINCREMENT, assigner VARCHAR(32) NOT NULL, x int NOT NULL, y int NOT NULL, z int NOT NULL, world VARCHAR(32) NOT NULL, reward int NOT NULL, state VARCHAR(32) NOT NULL)";
-            this.manageSQLite.createTable(query); // Use sqlCore.createTable(query) to create tables 
-        }
+      // Initialize SQLite handler
+      this.manageSQLite.initialize();
 
-        schedHandler.startCleanupScheduler_SyncRep();
-    }
+      // Check if the table exists, if it doesn't create it
+      if (!this.manageSQLite.checkTable("signs")) {
+         log.info(logPrefix + "Creating table signs");
+         String query = "CREATE TABLE signs (id INTEGER PRIMARY KEY AUTOINCREMENT, assigner VARCHAR(32) NOT NULL, x int NOT NULL, y int NOT NULL, z int NOT NULL, world VARCHAR(32) NOT NULL, reward int NOT NULL, state VARCHAR(32) NOT NULL)";
+         this.manageSQLite.createTable(query); // Use sqlCore.createTable(query) to create tables 
+      }
 
-    public void setStaticValues()
-    {
-        try
-        {
-            debug = this.getConfig().getBoolean("debug");
-            completedAssTag = this.getConfig().getString("CompletedAssignmentTag");
-            openAssignmentTitle = this.getConfig().getString("OpenAssignmentTitle");
-            rightClickText = this.getConfig().getString("RightClickText");
-        }
-        catch(Exception ex)
-        {
-            log.severe(logPrefix + "Config file is corrupt. Please check your syntax!");
-            log.severe(ex.getMessage());
-        }        
-    }
+      schedHandler.startCleanupScheduler_SyncRep();
+   }
 
-    private boolean setupEconomy() 
-    {
-        if (getServer().getPluginManager().getPlugin("Vault") == null) {
-            return false;
-        }
-        RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
-        if (rsp == null)
-        {
-            return false;
-        }
-        econ = rsp.getProvider();
-        return econ != null;
-    }
+   public void setStaticValues()
+   {
+      try
+      {
+         debug = this.getConfig().getBoolean("debug");
+         completedAssTag = this.getConfig().getString("CompletedAssignmentTag");
+         openAssignmentTitle = this.getConfig().getString("OpenAssignmentTitle");
+         rightClickText = this.getConfig().getString("RightClickText");
+      }
+      catch(Exception ex)
+      {
+         log.severe(logPrefix + "Config file is corrupt. Please check your syntax!");
+         log.severe(ex.getMessage());
+      }        
+   }
 
-    private boolean checkConfigFileVersion()
-    {
-        boolean res = false;
+   private boolean setupEconomy() 
+   {
+      if (getServer().getPluginManager().getPlugin("Vault") == null) {
+         return false;
+      }
+      RegisteredServiceProvider<Economy> rsp = getServer().getServicesManager().getRegistration(Economy.class);
+      if (rsp == null)
+      {
+         return false;
+      }
+      econ = rsp.getProvider();
+      return econ != null;
+   }
 
-        if(this.getConfig().isSet("config_version"))
-        {
-            String configVersion = this.getConfig().getString("config_version");
+   private boolean checkConfigFileVersion()
+   {
+      boolean res = false;
 
-            if(configVersion.equals(usedConfigVersion))
-            {
-                res = true;
-            }  
-        }
+      if(this.getConfig().isSet("config_version"))
+      {
+         String configVersion = this.getConfig().getString("config_version");
 
-        return (res);
-    }
+         if(configVersion.equals(usedConfigVersion))
+         {
+            res = true;
+         }  
+      }
 
-    void disablePlugin()
-    {
-        getServer().getPluginManager().disablePlugin(this);        
-    }
+      return (res);
+   }
 
-    @Override
-    public void onDisable()
-    {
-        assigner = null;
-        eListener = null;
-        cHandler = null;
-        econ = null;
-        pFolder = null;
-        manageSQLite = null;
-        schedHandler = null;
-        comHandler = null;
-        log.info(getDescription().getName() + " version " + getDescription().getVersion() + " is disabled!");
-    }        
+   void disablePlugin()
+   {
+      getServer().getPluginManager().disablePlugin(this);        
+   }
 
-    public void cleanupAssignmentsInDB(CommandSender sender)
-    {
-        Player player = null;
+   @Override
+   public void onDisable()
+   {
+      assigner = null;
+      eListener = null;
+      cHandler = null;
+      econ = null;
+      pFolder = null;
+      manageSQLite = null;
+      schedHandler = null;
+      comHandler = null;
+      log.info(getDescription().getName() + " version " + getDescription().getVersion() + " is disabled!");
+   }        
 
-        if((null != sender) &&
-                (sender instanceof Player))
-        {           
-            player = (Player)sender; // issuing instance is a player with permission to cleanup the DB            
-        }
+   public void cleanupAssignmentsInDB(CommandSender sender)
+   {
+      Player player = null;
 
-        // order is mandatory! First clause prevents exception if sender is null for second statement (will then not be evaluated).
-        // sender will be null if called by the cleanup scheduler
-        int signCount = 0;
-        int deletedCount = 0;                        
-        String query = "SELECT COUNT(*) as 'count' FROM signs";
-        ResultSet resSet = null;
-        
-        try
-        {
+      if((null != sender) &&
+            (sender instanceof Player))
+      {           
+         player = (Player)sender; // issuing instance is a player with permission to cleanup the DB            
+      }
+
+      // order is mandatory! First clause prevents exception if sender is null for second statement (will then not be evaluated).
+      // sender will be null if called by the cleanup scheduler
+      int signCount = 0;
+      int deletedCount = 0;                        
+      String query = "SELECT COUNT(*) as 'count' FROM signs";
+      ResultSet resSet = null;
+
+      try
+      {
+         resSet = this.manageSQLite.sqlQuery(query);
+         resSet.next();       //set pointer to first row                     
+         signCount = resSet.getInt(resSet.getRow());
+      }
+      catch(Exception e)
+      {
+         if(null != player) // is null if called by scheduler or console
+         {
+            player.sendMessage(ChatColor.YELLOW + "Die Datenbank scheint leer zu sein.");
+         }
+         else
+         {
+            log.info(logPrefix + "DB cleanup: Database seems to be empty.");
+         }
+      }
+
+      if(signCount > 0)
+      {                           
+         query = "SELECT x, y, z, world FROM signs";
+         try
+         {
             resSet = this.manageSQLite.sqlQuery(query);
-            resSet.next();       //set pointer to first row                     
-            signCount = resSet.getInt(resSet.getRow());
-        }
-        catch(Exception e)
-        {
+            resSet.next();  //set pointer to first row
+
+            Location loc;
+            boolean isAssSign = false;                                
+
+            Block blToDel;
+
+            for(int i = 0; i < signCount; i++)
+            {
+               isAssSign = false;
+               loc = new Location(getServer().getWorld(resSet.getString("world")),resSet.getDouble("x"),resSet.getDouble("y"),resSet.getDouble("z"));
+               blToDel = loc.getBlock();
+
+               //check if block is a sign, and if not, delete it from db.
+               if((blToDel.getTypeId() == 63) || // is there a sign post or wall sign?
+                     (blToDel.getTypeId() == 68))
+               {              
+                  Sign sign = (Sign) blToDel.getState();
+
+                  if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + completedAssTag + ">") || sign.getLine(0).contains("<" + openAssignmentTitle + ">")) // is Assignment sign?
+                  {
+                     isAssSign = true;
+                  }                                                                            
+               }                        
+
+               if(!isAssSign)
+               {   
+                  query = "DELETE FROM signs WHERE x=" + resSet.getInt("x") + " AND y=" + resSet.getInt("y") + " AND z=" + resSet.getInt("z") + " AND world='" + resSet.getString("world") +"'";
+                  this.manageSQLite.deleteQuery(query);                                       
+                  deletedCount++;   
+               }
+
+               resSet.next();  //set pointer to next row
+            }
             if(null != player) // is null if called by scheduler or console
             {
-                player.sendMessage(ChatColor.YELLOW + "Die Datenbank scheint leer zu sein.");
+               player.sendMessage(ChatColor.GREEN + "Es wurden " + deletedCount + " ungueltige Auftraege aus der DB geloescht.");
             }
-            else
+            else // is null if called by scheduler
             {
-                log.info(logPrefix + "DB cleanup: Database seems to be empty.");
+               log.info(logPrefix + "DB cleanup: " + deletedCount + " invalid sign entries have been deleted.");
             }
-        }
+         }
+         catch(Exception e)
+         {
+            log.severe(logPrefix + e.getMessage());
+         }
+      }
+      else
+      {
+         if(null != player) // is null if called by scheduler or console
+         {
+            player.sendMessage(ChatColor.GREEN + "Es wurden keine ungueltigen Auftraege gefunden.");
+         }
+         else
+         {
+            log.info(logPrefix + "DB cleanup task: No invalid assignments found.");
+         }
+      } // END signCount > 0
+   } //END cleanup
 
-        if(signCount > 0)
-        {                           
-            query = "SELECT x, y, z, world FROM signs";
-            try
-            {
-                resSet = this.manageSQLite.sqlQuery(query);
-                resSet.next();  //set pointer to first row
 
-                Location loc;
-                boolean isAssSign = false;                                
+   //==============================================================================
+   // database queries
+   public Player getAssignerFromDB(int x, int y, int z, String world)
+   {
+      String query = "SELECT assigner FROM signs WHERE x='" + x + "' AND y='" + y + "' AND z='" + z+ "' AND world='" + world + "'";        
 
-                Block blToDel;
+      try
+      {            
+         ResultSet queryRes = this.manageSQLite.sqlQuery(query);
+         queryRes.next(); //move cursor to first row of result (should only have one though) 
+         if(queryRes.getRow() == 1) // query has a result, so it's a registeres sign
+         { 
+            String assignerName = queryRes.getString("assigner");
+            assigner = Bukkit.getServer().getPlayer(assignerName); //ACHTUNG: DAS GEHT NUR GUT, WENN DER ASSIGNER ONLINE IST!!!
+            //Wenn er auch nicht online sein kann, dann die Methode "getAssignerNameFromDB" nutzen!
+            if(Assignment.debug){log.info("Schild ist registriertes Assignment Schild");}  
+         }
+      }
+      catch (Exception e)
+      {
+         assigner = null;            
+      }       
+      return assigner;
+   }
 
-                for(int i = 0; i < signCount; i++)
-                {
-                    isAssSign = false;
-                    loc = new Location(getServer().getWorld(resSet.getString("world")),resSet.getDouble("x"),resSet.getDouble("y"),resSet.getDouble("z"));
-                    blToDel = loc.getBlock();
+   public String getAssignerNameFromDB(int x, int y, int z, String world)
+   {
+      String assignerName = "";
+      String query = "SELECT assigner FROM signs WHERE x=" + x + " AND y=" + y + " AND z=" + z+ " AND world='" + world + "'";        
 
-                    //check if block is a sign, and if not, delete it from db.
-                    if((blToDel.getTypeId() == 63) || // is there a sign post or wall sign?
-                            (blToDel.getTypeId() == 68))
-                    {              
-                        Sign sign = (Sign) blToDel.getState();
+      try
+      {            
+         ResultSet queryRes = this.manageSQLite.sqlQuery(query);
+         queryRes.next(); //move cursor to first row of result (should only have one though) 
+         if(queryRes.getRow() == 1) // query has a result, so it's a registeres sign
+         { 
+            assignerName = queryRes.getString("assigner");                    
+            if(Assignment.debug){log.info("Schild ist registriertes Assignment Schild");}  
+         }
+      }
+      catch (Exception e)
+      {
+         assignerName = "";            
+      }       
+      return assignerName;
+   }
 
-                        if(sign.getLine(0).contains("<A>") || sign.getLine(0).contains("<a>") || sign.getLine(0).contains("<" + completedAssTag + ">") || sign.getLine(0).contains("<" + openAssignmentTitle + ">")) // is Assignment sign?
-                        {
-                            isAssSign = true;
-                        }                                                                            
-                    }                        
+   public void deleteSignFromDB(int x, int y, int z, String world)
+   {
+      String query = "DELETE FROM signs WHERE x=" + x + " AND y=" + y + " AND z=" + z + " AND world='" + world + "'";       
 
-                    if(!isAssSign)
-                    {   
-                        query = "DELETE FROM signs WHERE x=" + resSet.getInt("x") + " AND y=" + resSet.getInt("y") + " AND z=" + resSet.getInt("z") + " AND world='" + resSet.getString("world") +"'";
-                        this.manageSQLite.deleteQuery(query);                                       
-                        deletedCount++;   
-                    }
+      try
+      {            
+         this.manageSQLite.deleteQuery(query);
+         if(Assignment.debug){log.info("Schild wurde erfolgreich geloescht.");}  
+      }
+      catch (Exception e)
+      {
+         log.severe(logPrefix + "Error on deleting sign from DB. No sign found here.");
+      }   
+   }
 
-                    resSet.next();  //set pointer to next row
-                }
-                if(null != player) // is null if called by scheduler or console
-                {
-                    player.sendMessage(ChatColor.GREEN + "Es wurden " + deletedCount + " ungueltige Auftraege aus der DB geloescht.");
-                }
-                else // is null if called by scheduler
-                {
-                    log.info(logPrefix + "DB cleanup: " + deletedCount + " invalid sign entries have been deleted.");
-                }
-            }
-            catch(Exception e)
-            {
-                log.severe(logPrefix + e.getMessage());
-            }
-        }
-        else
-        {
-            if(null != player) // is null if called by scheduler or console
-            {
-                player.sendMessage(ChatColor.GREEN + "Es wurden keine ungueltigen Auftraege gefunden.");
-            }
-            else
-            {
-                log.info(logPrefix + "DB cleanup task: No invalid assignments found.");
-            }
-        } // END signCount > 0
-    } //END cleanup
-    
+   public void updateSignInDB(int x, int y, int z, String world, String state)
+   {
+      String query = "UPDATE signs SET state='" + state + "' WHERE x=" + x + " AND y=" + y + " AND z=" + z + " AND world='" + world + "'";       
 
-    //==============================================================================
-    // database queries
-    public Player getAssignerFromDB(int x, int y, int z, String world)
-    {
-        String query = "SELECT assigner FROM signs WHERE x='" + x + "' AND y='" + y + "' AND z='" + z+ "' AND world='" + world + "'";        
+      try
+      {            
+         this.manageSQLite.updateQuery(query);
+         if(Assignment.debug){log.info("Schild wurde erfolgreich geloescht.");}  
+      }
+      catch (Exception e)
+      {
+         log.severe(logPrefix + "Error on updating sign in DB. No sign found here.");
+      }   
+   }
 
-        try
-        {            
-            ResultSet queryRes = this.manageSQLite.sqlQuery(query);
-            queryRes.next(); //move cursor to first row of result (should only have one though) 
-            if(queryRes.getRow() == 1) // query has a result, so it's a registeres sign
-            { 
-                String assignerName = queryRes.getString("assigner");
-                assigner = Bukkit.getServer().getPlayer(assignerName); //ACHTUNG: DAS GEHT NUR GUT, WENN DER ASSIGNER ONLINE IST!!!
-                //Wenn er auch nicht online sein kann, dann die Methode "getAssignerNameFromDB" nutzen!
-                if(Assignment.debug){log.info("Schild ist registriertes Assignment Schild");}  
-            }
-        }
-        catch (Exception e)
-        {
-            assigner = null;            
-        }       
-        return assigner;
-    }
+   public int getCompletedAssignmentsFromDB(String loggedInPlayerName)
+   {
+      int assignmentsReadyForPickup = 0;
+      String query = "SELECT COUNT(*) AS amount FROM signs WHERE assigner='" + loggedInPlayerName + "' AND state='" + assignmentStateCompleted + "'";        
 
-    public String getAssignerNameFromDB(int x, int y, int z, String world)
-    {
-        String assignerName = "";
-        String query = "SELECT assigner FROM signs WHERE x=" + x + " AND y=" + y + " AND z=" + z+ " AND world='" + world + "'";        
+      try
+      {            
+         ResultSet queryRes = this.manageSQLite.sqlQuery(query);
+         queryRes.next(); //move cursor to first row of result (should only have one though) 
+         if(queryRes.getInt("amount") > 0) // Get amount of found completed assignments for the newly logged in player
+         { 
+            assignmentsReadyForPickup = queryRes.getInt("amount");                    
+            if(Assignment.debug){log.info("Neu eingeloggter Spieler " + loggedInPlayerName + " hat " + assignmentsReadyForPickup + " erfuellte Auftraege, die er abholen kann.");}  
+         }
+      }
+      catch (Exception e)
+      {
+         log.severe(e.getMessage());
+      }       
+      return assignmentsReadyForPickup;
+   }
 
-        try
-        {            
-            ResultSet queryRes = this.manageSQLite.sqlQuery(query);
-            queryRes.next(); //move cursor to first row of result (should only have one though) 
-            if(queryRes.getRow() == 1) // query has a result, so it's a registeres sign
-            { 
-                assignerName = queryRes.getString("assigner");                    
-                if(Assignment.debug){log.info("Schild ist registriertes Assignment Schild");}  
-            }
-        }
-        catch (Exception e)
-        {
-            assignerName = "";            
-        }       
-        return assignerName;
-    }
+   public ResultSet getAssignmentList(String queriedPlayerName)
+   {        
+      String query = "SELECT x, y, z, world, state FROM signs WHERE assigner LIKE '" + queriedPlayerName + "'";
 
-    public void deleteSignFromDB(int x, int y, int z, String world)
-    {
-        String query = "DELETE FROM signs WHERE x=" + x + " AND y=" + y + " AND z=" + z + " AND world='" + world + "'";       
-
-        try
-        {            
-            this.manageSQLite.deleteQuery(query);
-            if(Assignment.debug){log.info("Schild wurde erfolgreich geloescht.");}  
-        }
-        catch (Exception e)
-        {
-            log.severe(logPrefix + "Error on deleting sign from DB. No sign found here.");
-        }   
-    }
-
-    public void updateSignInDB(int x, int y, int z, String world, String state)
-    {
-        String query = "UPDATE signs SET state='" + state + "' WHERE x=" + x + " AND y=" + y + " AND z=" + z + " AND world='" + world + "'";       
-
-        try
-        {            
-            this.manageSQLite.updateQuery(query);
-            if(Assignment.debug){log.info("Schild wurde erfolgreich geloescht.");}  
-        }
-        catch (Exception e)
-        {
-            log.severe(logPrefix + "Error on updating sign in DB. No sign found here.");
-        }   
-    }
-
-    public int getCompletedAssignmentsFromDB(String loggedInPlayerName)
-    {
-        int assignmentsReadyForPickup = 0;
-        String query = "SELECT COUNT(*) AS amount FROM signs WHERE assigner='" + loggedInPlayerName + "' AND state='" + assignmentStateCompleted + "'";        
-
-        try
-        {            
-            ResultSet queryRes = this.manageSQLite.sqlQuery(query);
-            queryRes.next(); //move cursor to first row of result (should only have one though) 
-            if(queryRes.getInt("amount") > 0) // Get amount of found completed assignments for the newly logged in player
-            { 
-                assignmentsReadyForPickup = queryRes.getInt("amount");                    
-                if(Assignment.debug){log.info("Neu eingeloggter Spieler " + loggedInPlayerName + " hat " + assignmentsReadyForPickup + " erfuellte Auftraege, die er abholen kann.");}  
-            }
-        }
-        catch (Exception e)
-        {
-            log.severe(e.getMessage());
-        }       
-        return assignmentsReadyForPickup;
-    }
-
-    public ResultSet getAssignmentList(String queriedPlayerName)
-    {        
-        String query = "SELECT x, y, z, world, state FROM signs WHERE assigner LIKE '" + queriedPlayerName + "'";
-
-        try
-        {            
-            ResultSet queryRes = this.manageSQLite.sqlQuery(query);            
-            return (queryRes);
-        }
-        catch (Exception e)
-        {           
-            return null;
-        }
-    }
+      try
+      {            
+         ResultSet queryRes = this.manageSQLite.sqlQuery(query);            
+         return (queryRes);
+      }
+      catch (Exception e)
+      {           
+         return null;
+      }
+   }
 }
 
